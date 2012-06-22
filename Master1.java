@@ -251,9 +251,7 @@ public class Master1 {
                         if (cline==transfer[k][0] && tstop==transfer[k][1]) {
                             kstop=transfer[k][3];
                             kline=transfer[k][2];
-                            double[] targument = {cstop, kstop, kline, tTT, ktime};
-
-                            m1.onetransfer(targument);
+                            m1.onetransfer(cstop, kstop, kline, tTT, ktime);
                         }
                     } //inner for
                 } //middle for
@@ -343,12 +341,7 @@ public class Master1 {
         //System.out.println(cstop+"+"+cline+"+"+cTT);
     } //zerotransfer
 
-    public void onetransfer(double[] args) {
-        double cstop=args[0]; //cstop
-        double kstop=args[1]; //kstop
-        double kline=args[2]; //kline
-        double cTT=args[3]; //=cstop_time schedule time at stop1
-        double ktime=args[4]; //ktime schedule time at transfer stop
+    public void onetransfer(double cstop, double kstop, double kline, double cTT, double ktime) {
         int a, b;
         double ktrip=0;
         double kseq=0;
@@ -426,10 +419,9 @@ public class Master1 {
         } //catch
     } //onetransfer
 
-    public void TAZ(int arg) {
-        int c, d, g, cmax, TAZline;
+    public void TAZ(int cmax) {
+        int c, d, g, TAZline;
         double TTinmin, stop1, stop2, TAZ1, TAZ2, access=0, egress=0, OTtime, line;
-        cmax=arg;
         String temp, currentline[];
 
         try {
