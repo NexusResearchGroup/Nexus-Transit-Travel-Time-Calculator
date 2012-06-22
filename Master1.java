@@ -84,12 +84,11 @@ public class Master1 {
         //*****bring stop-line file into array*****
         try { //reads stop-line file to an array
             BufferedReader scrSL = new BufferedReader(new FileReader(stoplinefile));
-            temp = scrSL.readLine(); //read and discard header
+            scrSL.readLine(); //read and discard header
             stoplineLines--;
 
             for(i=0; i<stoplineLines; i++) {
-                temp = scrSL.readLine();
-                currentline = temp.split(",");
+                currentline = scrSL.readLine().split(",");
 
                 for(j=0; j<=1; j++) {
 
@@ -108,12 +107,11 @@ public class Master1 {
         //*****bring stop-taz file into array*****
         try { //reads stop-TAZ conversion file to an array
             BufferedReader scanner = new BufferedReader(new FileReader(stopfile));
-            temp = scanner.readLine(); //read and discard header
+            scanner.readLine(); //read and discard header
             stopconvLines--;
 
             for(i=0; i<stopconvLines; i++) {
-                temp = scanner.readLine();
-                currentline = temp.split(",");
+                currentline = scanner.readLine().split(",");
 
                 for(j=0; j<=3; j++) {
                     stopconv[i][j] = Double.parseDouble(currentline[j]);
@@ -132,12 +130,11 @@ public class Master1 {
         try { //reads schedule file to an array
             //read in the GTFS trip file first
             BufferedReader tripRDR = new BufferedReader(new FileReader(tripfile));
-            temp = tripRDR.readLine(); //read header now or it gets confused later
+            tripRDR.readLine(); //read header now or it gets confused later
             tripLines--;
 
             for(i=0; i<tripLines; i++) {
-                temp = tripRDR.readLine();
-                currentline = temp.split(",");
+                currentline = tripRDR.readLine().split(",");
                 j=currentline[0].length();
 
                 if(currentline[1].equals(serviceID)) {
@@ -155,12 +152,11 @@ public class Master1 {
             BufferedReader scrSCH = new BufferedReader(new FileReader(schedulefile));
             String timeparse[];
 
-            temp = scrSCH.readLine(); //read header now or it gets confused later
+            scrSCH.readLine(); //read header now or it gets confused later
             scheduleLines--;
 
             for(i=0; i<scheduleLines; i++) {
-                temp = scrSCH.readLine();
-                currentline = temp.split(",");
+                currentline = scrSCH.readLine().split(",");
 
                 schedule[i][1] = Double.parseDouble(currentline[0].substring(0,7)); //tripID
                 for(j=0; j<tripLines; j++) {
@@ -185,12 +181,11 @@ public class Master1 {
         //*****bring transfer file into array*****
         try { //reads transfer file to an array
             BufferedReader scrTR = new BufferedReader(new FileReader(transferfile));
-            temp = scrTR.readLine(); //read and discard header
+            scrTR.readLine(); //read and discard header
             transferLines--;
 
             for(i=0; i<transferLines; i++) {
-                temp = scrTR.readLine();
-                currentline = temp.split(",");
+                currentline = scrTR.readLine().split(",");
 
                 if(currentline[0] != currentline[2]) {
                     for(j=0; j<=3; j++) {
@@ -210,12 +205,11 @@ public class Master1 {
         //*****bring taz travel time matrix file into array*****
         try { //reads TAZ matrix file to an array
             BufferedReader scrTT = new BufferedReader(new FileReader(tazfile));
-            temp = scrTT.readLine(); //read and discard header
+            scrTT.readLine(); //read and discard header
             tazLines--;
 
             for(i=0; i<tazLines; i++) {
-                temp = scrTT.readLine();
-                currentline = temp.split(",");
+                currentline = scrTT.readLine().split(",");
 
                 for(j=0; j<=2; j++) {
                     tazmatrix[i][j] = Double.parseDouble(currentline[j]);
