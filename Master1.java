@@ -238,12 +238,10 @@ public class Master1 {
 
                 cstop=stopline[i][0];
                 cline=stopline[i][1];
-
                 cTT=0;
-                double[] argument = {cstop, cline, cTT};
-                m1.zerotransfer(argument);
+                m1.zerotransfer(cstop, cline, cTT);
+                
                 int jmax=templine;
-
                 for(j=0; j<jmax; j++) { //check for transfers
                     tstop=tempsch[j][1];
                     tTT=tempsch[j][2];
@@ -304,10 +302,7 @@ public class Master1 {
 
     } //main
 
-    public void zerotransfer(double[] args) {
-        double cstop=args[0];
-        double cline=args[1];
-        double cTT=args[2];
+    public void zerotransfer(double cstop, double cline, double cTT) {
         int a,b;
         double ctrip=0;
         templine=0;
