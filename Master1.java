@@ -285,7 +285,7 @@ public class Master1 {
             //write results to file
             BufferedWriter walrus = new BufferedWriter(new FileWriter("results.csv"));
 
-            for(int wl=0; wl<TAZnumber; wl++) {
+            for(int wl = 0; wl < (TAZnumber*TAZnumber); wl++) {
                 walrus.write(tazmatrix[wl][0]+","+tazmatrix[wl][1]+","+tazmatrix[wl][2]+","+tazmatrix[wl][3]+"\n");
                 walrus.flush();
             } //for
