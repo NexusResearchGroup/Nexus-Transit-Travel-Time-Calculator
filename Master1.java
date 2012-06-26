@@ -109,11 +109,11 @@ public class Master1 {
 
             for(i=0; i<stopconvLines; i++) {
                 currentline = scanner.readLine().split(",");
-
-                for(j=0; j<=3; j++) {
-                    stopconv[i][j] = Double.parseDouble(currentline[j]);
-
-                } //inner for
+                
+                stopconv[i][0] = Double.parseDouble(currentline[0]);
+                stopconv[i][1] = Double.parseDouble(currentline[1]);
+                stopconv[i][2] = Double.parseDouble(currentline[2]);
+                stopconv[i][3] = Double.parseDouble(currentline[3]);
 
             } //outer for
 
@@ -185,9 +185,12 @@ public class Master1 {
                 currentline = scrTR.readLine().split(",");
 
                 if(currentline[0] != currentline[2]) {
-                    for(j=0; j<=3; j++) {
-                        transfer[i][j] = Double.parseDouble(currentline[j]);
-                    } //inner for
+                
+                    transfer[i][0] = Double.parseDouble(currentline[0]);
+                    transfer[i][1] = Double.parseDouble(currentline[1]);
+                    transfer[i][2] = Double.parseDouble(currentline[2]);
+                    transfer[i][3] = Double.parseDouble(currentline[3]);
+
                 }
 
             } //outer for
