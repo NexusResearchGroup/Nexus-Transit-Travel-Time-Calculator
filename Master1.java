@@ -89,12 +89,9 @@ public class Master1 {
 
             for(i=0; i<stoplineLines; i++) {
                 currentline = scrSL.readLine().split(",");
-
-                for(j=0; j<=1; j++) {
-
-                    stopline[i][j] = Integer.parseInt(currentline[j]);
-
-                } //inner for
+                
+                stopline[i][0] = Integer.parseInt(currentline[0]);
+                stopline[i][1] = Integer.parseInt(currentline[1]);
 
             } //outer for
 
