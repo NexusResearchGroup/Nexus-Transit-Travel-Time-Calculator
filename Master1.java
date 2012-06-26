@@ -210,10 +210,10 @@ public class Master1 {
 
             for(i=0; i<tazLines; i++) {
                 currentline = scrTT.readLine().split(",");
-
-                for(j=0; j<=2; j++) {
-                    tazmatrix[i][j] = Double.parseDouble(currentline[j]);
-                } //inner for
+                
+                tazmatrix[i][0] = Double.parseDouble(currentline[0]);
+                tazmatrix[i][1] = Double.parseDouble(currentline[1]);
+                tazmatrix[i][2] = Double.parseDouble(currentline[2]);
 
             } //outer for
 
