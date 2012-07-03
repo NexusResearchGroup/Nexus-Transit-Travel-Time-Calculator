@@ -12,6 +12,16 @@ Several input files are needed. The assumed format is comma delimited with a one
 	[stop number, line number]
 	
 	This is the driver for the program. One way to debug is to include a very small stopline file (~5 lines). For any schedule set, the user must ensure that all unique stop-line pairs are present in this file. (i.e. if stop 12345 is served by bus routes 2 and 3, the lines "12345,2" and "12345,3" should appear in this file)
+	
+	You can also generate this using the StopLineListCreator class, which will create the stopline data directly from a GTFS archive. To use it:
+	```
+	java StopLineListCreator gtfs.zip > stopline.csv
+	```
+	
+	Depending on the size of the GTFS archive, you may need to increase the heap space from the default, e.g. with:
+	```
+	java -Xmx1G StopLineListCreator gtfs.zip > stopline.csv
+	```
 
 *	*stopconv*
 
