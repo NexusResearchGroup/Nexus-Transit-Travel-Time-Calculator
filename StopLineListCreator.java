@@ -147,7 +147,11 @@ public class StopLineListCreator {
             Set<String> stops = new HashSet<String>();
             
             for (String tripID : tripIDs) {
-                stops.addAll(tripStopMap.get(tripID));
+                if (tripStopMap.containsKey(tripID)) {
+                    stops.addAll(tripStopMap.get(tripID));
+                } else {
+                    //System.out.println("Trip " + tripID + " not in stop_times.txt");
+                }
             }
             
             routeStopMap.put(shortRouteID, stops);
