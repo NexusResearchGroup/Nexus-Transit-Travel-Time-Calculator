@@ -1,8 +1,6 @@
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
-import java.sql.Timestamp;
-import java.text.DateFormat;
 
 public class StopLineListCreator {
 
