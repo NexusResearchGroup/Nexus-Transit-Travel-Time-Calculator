@@ -78,8 +78,8 @@ public class Master1 {
         tazLines = m1.LineNo(tazfile);
         serviceID = "SEP09-Multi-Weekday-01"; //service ID, which is part of GTFS schedule format
         TAZnumber = 1201; //set number of TAZs here
-        FirstScheduleTime = 21600; //Earliest schedule time the program will consider, in seconds after midnight
-        LastScheduleTime = 32400; //Latest schedule time the program will consider
+        FirstScheduleTime = 25200; //Earliest schedule time the program will consider, in seconds after midnight (25200 = 7 AM)
+        LastScheduleTime = 32400; //Latest schedule time the program will consider (32400 = 9 AM)
 
         //*****bring stop-line file into array*****
         try { //reads stop-line file to an array
