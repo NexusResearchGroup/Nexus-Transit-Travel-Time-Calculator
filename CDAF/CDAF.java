@@ -87,11 +87,11 @@ BufferedReader scrSL = new BufferedReader(new FileReader(stoplinefile));
 	temp = scrSL.readLine();
 	currentline = temp.split(",");
 		
-		for(j=0;j<=1;j++) {
+		//for(j=0;j<=1;j++) {
 		
-		stopline[i][j] = Integer.parseInt(currentline[j]);
+		stopline[i][0] = Integer.parseInt(currentline[0]);
 		
-		} //inner for
+		//} //inner for
 	
 	} //outer for
 
@@ -222,7 +222,8 @@ double lastCheckpointPercent = 0;
 for(i=0;i<stoplineLines;i++) { //cycle through stopline
 	
 	cstop=stopline[i][0];
-	cline=stopline[i][1];
+	cline=0;
+	//cline=stopline[i][1];
 	
 	cTT=0;
 	double[] argument = {cstop, cline, cTT};
@@ -306,7 +307,7 @@ System.out.println("Elapsed time: " + elapsedTime);
 
 public void zerotransfer(double[] args) {
 double cstop=args[0];
-double cline=args[1];
+//double cline=args[1];
 double cTT=args[2];
 int a,b;
 double ctrip=0;
@@ -317,7 +318,8 @@ try { //checks schedule for a match
 
 	for(a=0;a<scheduleLines;a++) { 
 	
-		if (schedule[a][0]==cline && schedule[a][3]==cstop) {
+		if (schedule[a][3]==cstop) {
+			cline=schedule[a][0];
 			ctrip = schedule[a][1];
 			cstop_time = schedule[a][4]; //schedule time in seconds at cstop
 			b=a;
