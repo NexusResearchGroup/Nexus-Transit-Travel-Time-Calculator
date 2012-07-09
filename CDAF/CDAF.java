@@ -4,12 +4,12 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 
 public class CDAF {
-//Full version, last edited 2 April 2012
+//Full version, last edited 9 July 2012
 //Compatible with GTFS
 
-private static int i, j, k, stoplineLines, stopconvLines, tazLines, scheduleLines, transferLines, countOT, templine, templine2, tripLines;
+private static int i, j, k, stop1, stoplineLines, stopconvLines, tazLines, scheduleLines, transferLines, templine, templine2, tripLines, stopsLines;
 private static double cstop_time;
-private static boolean append=true, checkOT=false, firstTAZrun=true;
+private static boolean append=true, firstTAZrun=true;
 
 private static int stopline[][] = new int[20000][2]; //INCREASE AS NECESSARY
 //column 0 has stop numbers
@@ -52,14 +52,23 @@ private static double trips[][] = new double[24000][2];
 //column 0 has line
 //column 1 has unique trip id (unique across all lines)
 
+private static double stops[][] = new double[14000][3];
+//0 stop_id
+//1 stop_lat
+//2 stop_lon
+
+private static double stop_prox[][] = new double[14000][2];
+//0 stop_id
+//1 distance from stop of interest (m)
+
 private static File CDAFoutput = null, tazfile;
 
 public static void main (String[] args){
-File stoplinefile, stopfile, schedulefile, transferfile, tripfile;
+File stoplinefile, stopfile, schedulefile, transferfile, tripfile, stopsfile;
 String temp, currentline[];
 
 java.util.Date date= new java.util.Date();
-System.out.println ("NEXUS Transit Travel Time Calculator: Version 1.3");
+System.out.println ("CDAF Calculator: Version 1.1");
 System.out.println ("Initializing...");
 
 CDAF m1 = new CDAF(); //allows you to run non-static methods
@@ -76,29 +85,64 @@ transferfile = new File ("transfer_2030.csv"); //input transfer file location
 transferLines = m1.LineNo(transferfile);
 tazfile = new File ("TAZ_TAZWWALKTIMES.csv"); //result file location
 tazLines = m1.LineNo(tazfile);
+stopsfile = new File ("stops.txt"); //input stops file
+stopsLines = m1.LineNo(stopsfile);
 
 CDAFoutput = new File ("CDAFoutput.txt"); //outputs stop to stop times from onetransfer to avoid array size limits
 CDAFoutput.delete();
 
+//*****import stops file*****
+try { //reads stops file to an array
+BufferedReader ST = new BufferedReader(new FileReader(stopsfile));
+	temp = ST.readLine(); //read header now or it gets confused later
+	stopsLines--; //decrease line number accordingly
+
+	for(i=0;i<stopsLines;i++) { 
+	temp = ST.readLine();
+	currentline = temp.split(",");
+		
+		for(j=0;j<=11;j++) {
+		stops[i][0] = Double.parseDouble(currentline[0]);
+		stops[i][1] = Double.parseDouble(currentline[3]);
+		stops[i][2] = Double.parseDouble(currentline[4]);
+		} //inner for
+		stop_prox[i][0]=Double.parseDouble(currentline[0]); //fill in stop_id
+	
+	} //outer for
+
+ST.close();	
+    } catch (Exception e) {
+      System.out.println ("exception:" + e );
+    } //catch
+//*****stops file imported*****
+
 //*****bring stop-line file into array*****
 try { //reads stop-line file to an array
 BufferedReader scrSL = new BufferedReader(new FileReader(stoplinefile));
-	for(i=0;i<stoplineLines;i++) { 
+	for(i=0;i<stoplineLines;i++) { //**This loop imports the stop numbers found in the stopline file**
 	temp = scrSL.readLine();
 	currentline = temp.split(",");
 		
-		//for(j=0;j<=1;j++) {
-		
 		stopline[i][0] = Integer.parseInt(currentline[0]);
 		
-		//} //inner for
-	
 	} //outer for
+	j=stoplineLines; //save the original value of stoplineLines so we don't create an infinite loop
+	for(i=0;i<j;i++){ //**This loop checks the stop numbers imported for nearby stops that are logically at the same location (within 100m)**
+		for(k=0;k<stopsLines;k++){ //find the line number in stops[][] for the current stop number
+			if((int)stops[k][0]==stopline[i][0]){ //if IDs match
+				stop1=k;
+				break;
+			}//if
+		} //inner for
+		
+		Distance(stop1);
+	} //second for
 
 scrSL.close();	
     } catch (Exception e) {
       System.out.println ("exception:" + e );
     } //catch
+System.out.println("stoplineLines= "+stoplineLines);
 //*****stop-line file now an array*****
 
 //*****bring stop-taz file into array*****
@@ -270,10 +314,8 @@ for(i=0;i<stoplineLines;i++) { //cycle through stopline
 	
 } //outer for
 
-// checkOT=true;
 // templine=0;
 
-// countOT = m1.LineNo(CDAFoutput);
 // m1.TAZ(templine); //call TAZ one last time, telling it to read the onetransfer output
 
 System.out.println("100% complete! Now writing results to file");
@@ -307,7 +349,7 @@ System.out.println("Elapsed time: " + elapsedTime);
 
 public void zerotransfer(double[] args) {
 double cstop=args[0];
-//double cline=args[1];
+double cline=args[1]; //overwrite in line 321
 double cTT=args[2];
 int a,b;
 double ctrip=0;
@@ -411,14 +453,6 @@ try { //checks schedule for a match
 			while (schedule[b][0]==kline && schedule[b][1]==ktrip && schedule[b][2]>=kseq){
 				
 				//***start here***
-					//this code was in method TAZ in the version that wrote transfer results to file
-					//moved here due to file size limitations in NTFS
-				
-						//BufferedReader scrOT = new BufferedReader(new FileReader(CDAFoutput));
-						//for(i=0;i<countOT;i++) {
-						
-							//temp = scrOT.readLine();
-							//currentline = temp.split(",");
 							
 							TAZ1=0;
 							TAZ2=0;
@@ -612,5 +646,28 @@ scrTT.close();
 //*****taz travel time matrix now an array*****
 
 }//clearTAZ
+
+public static void Distance(int arg){
+Double clat, clon, x, y;
+clat=stops[arg][1];
+clon=stops[arg][2];
+	try{
+		for(i=0;i<stopsLines;i++){
+			x = (clon-stops[i][2])/360*40075000*Math.cos(Math.toRadians((clat+stops[i][1]))/2);
+			y = (clat-stops[i][1])/360*40075000;
+			stop_prox[i][1]=Math.sqrt(x*x+y*y);
+			
+			if(stop_prox[i][1]<100 && i!=arg){ //if this is within 100m of the original stop (and is not the original stop), add it
+				stopline[stoplineLines][0]=(int)stop_prox[i][0];
+				stoplineLines++;
+				System.out.println("stop "+(int)stop_prox[i][0]+" added");
+			}//if
+		}//for
+		//System.out.println("Distance to stop "+stop_prox[3140][0]+" is "+stop_prox[3140][1]);
+	} //try
+	catch(Exception e){
+		System.out.println ("exception:" + e );
+	} //catch
+} //Distance
 
 } //class
