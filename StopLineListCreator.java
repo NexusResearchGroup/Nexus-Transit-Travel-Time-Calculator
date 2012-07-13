@@ -20,7 +20,7 @@ public class StopLineListCreator {
 	    //System.out.println("printStopLineList\n");
 	    System.out.println("stopID,lineno");
 	    for (StopLinePair pair : stopLineList) {
-	        System.out.println(pair.stop + "," + pair.line);
+	        System.out.println(pair.stop.id + "," + pair.line);
 	    }
 	}
 	
@@ -167,7 +167,7 @@ public class StopLineListCreator {
         
         for (Map.Entry<String,Set<String>> routeStopPair : routeStopMap.entrySet()) {
             String routeID = routeStopPair.getKey();
-            Set<String> stopIDs = routeStopPair.getValue();
+            Set<String> stops = routeStopPair.getValue();
             
             for (String stopID : stopIDs) {
                 stopLineList.add(new StopLinePair(stopID, routeID));

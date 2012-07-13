@@ -1,8 +1,8 @@
 public class StopLinePair {
-    public String stop;
+    public GTFSStop stop;
     public String line;
     
-    public StopLinePair(String inputStop, String inputLine) {
+    public StopLinePair(GTFSStop inputStop, String inputLine) {
         stop = inputStop;
         line = inputLine;
     }
