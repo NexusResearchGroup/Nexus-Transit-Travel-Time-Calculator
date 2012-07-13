@@ -20,7 +20,8 @@ public class StopLineListCreator {
 	    //System.out.println("printStopLineList\n");
 	    System.out.println("stopID,lineno");
 	    for (StopLinePair pair : stopLineList) {
-	        System.out.println(pair.stop.id + "," + pair.line);
+	        for (GTFSRoute route : pair.routes) {
+	            System.out.println(pair.stop.id + "," + pair.route.id);
 	    }
 	}
 	
@@ -39,11 +40,10 @@ public class StopLineListCreator {
         BufferedReader stop_timesReader = this.bufferedReaderFromZipFileEntry(zipFile, StopLineListCreator.stop_timesFileName);
         BufferedReader routesReader = this.bufferedReaderFromZipFileEntry(zipFile, StopLineListCreator.routesFileName);
         
-        Map<String, Set<String>> routeTripMap = this.routeTripMap(tripsReader);
-        Map<String, Set<String>> tripStopMap = this.tripStopMap(stop_timesReader);
+        Map<GTFSRoute, Set<String>> routeTripMap = this.routeTripMap(tripsReader);
+        Map<String, Set<GTFSStop>> tripStopMap = this.tripStopMap(stop_timesReader);
         Map<String, String> routeIDShortIDMap = this.routeIDShortIDMap(routesReader);
-        Map<String, Set<String>> routeStopMap = this.routeStopMap(routeTripMap, tripStopMap, routeIDShortIDMap);
-
+        Map<GTFSRoute, Set<GTFSStop>> routeStopMap = this.routeStopMap(routeTripMap, tripStopMap, routeIDShortIDMap);
 	    
 	    return this.stopLineListFromRouteStopMap(routeStopMap);
         

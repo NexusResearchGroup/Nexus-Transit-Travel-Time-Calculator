@@ -1,9 +1,14 @@
-public class StopLinePair {
+public class StopRoutesPair {
     public GTFSStop stop;
-    public String line;
+    public Set<GTFSRoute> routes;
     
-    public StopLinePair(GTFSStop inputStop, String inputLine) {
+    public StopLinePair(GTFSStop inputStop) {
         stop = inputStop;
-        line = inputLine;
+        routes = new HashSet<GTFSRoute>();
+    }
+    
+    public StopLinePair(GTFSStop inputStop, Set<GTFSRoute> inputRoutes) {
+        stop = inputStop;
+        routes = inputRoutes;
     }
 }
