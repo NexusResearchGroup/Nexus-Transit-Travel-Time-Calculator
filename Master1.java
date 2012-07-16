@@ -12,28 +12,11 @@ public class Master1 {
     private static double cstop_time, FirstScheduleTime, LastScheduleTime;
     private static boolean append=true;
 
-    private static int stopline[][] = new int[24000][2]; //INCREASE AS NECESSARY
-    //column 0 has stop numbers
-    //column 1 has line numbers
-
     private static double stopconv[][] = new double[90000][4]; //INCREASE AS NECESSARY
     //column 0 has stop numbers
     //column 1 has equivalent TAZ
     //column 2 has walk time to/from block MAKE SURE THIS IS IN MINUTES!!!
     //column 3 has block id
-
-    private static double schedule[][] = new double[1511000][5]; //INCREASE AS NECESSARY
-    //column 0 has lineid
-    //column 1 has tripid
-    //column 2 has sequence
-    //column 3 has stopid
-    //column 4 has time in seconds (time since midnight)
-
-    private static double transfer[][] = new double[121000][4]; //INCREASE AS NECESSARY
-    //column 0 has line1
-    //column 1 has stop1
-    //column 2 has line2
-    //column 3 has stop2
 
     private static double tempsch[][] = new double[10000][5]; //INCREASE AS NECESSARY
     //column 0 has stop1
@@ -48,14 +31,12 @@ public class Master1 {
     //column 2 has TAZ1_TAZ2 travel time in minutes --set to 1440 (24 hrs) initially--
     //column 3 has final line number (0 indicates walk trip)
 
-    private static double trips[][] = new double[25000][2];
-    //column 0 has line
-    //column 1 has unique trip id (unique across all lines)
-
 
     public static void main (String[] args) {
         File stoplinefile, stopfile, tazfile, schedulefile, transferfile, tripfile;
         String temp, currentline[], serviceID;
+        
+        GTFSData gtfsData = new GTFSData("google_transit.zip", "MAY12-Multi-Weekday-01");
 
         java.util.Date date= new java.util.Date();
         System.out.println ("NEXUS Transit Travel Time Calculator: Version 1.3");
@@ -64,42 +45,14 @@ public class Master1 {
         Master1 m1 = new Master1(); //allows you to run non-static methods
 
         //SET FILE NAMES HERE
-        stoplinefile = new File ("stopline.csv"); //input stop to line file
-        stoplineLines = m1.LineNo(stoplinefile);
         stopfile = new File ("stopconv_block2.csv"); //input stop to taz conversion file
         stopconvLines = m1.LineNo(stopfile);
-        schedulefile = new File ("stop_times.txt"); //input GTFS stop times file
-        scheduleLines = m1.LineNo(schedulefile);
-        tripfile = new File ("trips.txt"); //input GTFS trip file
-        tripLines = m1.LineNo(tripfile);
-        transferfile = new File ("transfer_base.csv"); //input transfer file location
-        transferLines = m1.LineNo(transferfile);
         tazfile = new File ("TAZ_TAZWWALKTIMES.csv"); //result file location
         tazLines = m1.LineNo(tazfile);
         serviceID = "SEP09-Multi-Weekday-01"; //service ID, which is part of GTFS schedule format
         TAZnumber = 1201; //set number of TAZs here
         FirstScheduleTime = 25200; //Earliest schedule time the program will consider, in seconds after midnight (25200 = 7 AM)
         LastScheduleTime = 32400; //Latest schedule time the program will consider (32400 = 9 AM)
-
-        //*****bring stop-line file into array*****
-        try { //reads stop-line file to an array
-            BufferedReader scrSL = new BufferedReader(new FileReader(stoplinefile));
-            scrSL.readLine(); //read and discard header
-            stoplineLines--;
-
-            for(i=0; i<stoplineLines; i++) {
-                currentline = scrSL.readLine().split(",");
-                
-                stopline[i][0] = Integer.parseInt(currentline[0]);
-                stopline[i][1] = Integer.parseInt(currentline[1]);
-
-            } //outer for
-
-            scrSL.close();
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        } //catch
-        //*****stop-line file now an array*****
 
         //*****bring stop-taz file into array*****
         try { //reads stop-TAZ conversion file to an array
@@ -123,85 +76,6 @@ public class Master1 {
         } //catch
         //*****stop-taz file now an array*****
 
-        //*****bring schedule file into array*****
-        try { //reads schedule file to an array
-            //read in the GTFS trip file first
-            BufferedReader tripRDR = new BufferedReader(new FileReader(tripfile));
-            tripRDR.readLine(); //read header now or it gets confused later
-            tripLines--;
-
-            for(i=0; i<tripLines; i++) {
-                currentline = tripRDR.readLine().split(",");
-                j=currentline[0].length();
-
-                if(currentline[1].equals(serviceID)) {
-                    trips[i][0] = Double.parseDouble(currentline[0].substring(0,j-3));
-                    trips[i][1] = Double.parseDouble(currentline[2].substring(0,7));
-                } else {
-                    i--; //discard this line by writing over it in the next iteration
-                    tripLines--;
-                }
-
-            } //outer for
-            tripRDR.close();
-
-            //now read in the actual schedule
-            BufferedReader scrSCH = new BufferedReader(new FileReader(schedulefile));
-            String timeparse[];
-
-            scrSCH.readLine(); //read header now or it gets confused later
-            scheduleLines--;
-
-            for(i=0; i<scheduleLines; i++) {
-                currentline = scrSCH.readLine().split(",");
-
-                schedule[i][1] = Double.parseDouble(currentline[0].substring(0,7)); //tripID
-                for(j=0; j<tripLines; j++) {
-                    if(trips[j][1]==schedule[i][1]) break;
-                }
-                schedule[i][0]=trips[j][0]; //when match is found, save this as line number
-                schedule[i][2]=Double.parseDouble(currentline[4]); //sequence
-                schedule[i][3]=Double.parseDouble(currentline[3]); //stopID
-
-                timeparse = currentline[2].split(":");
-                schedule[i][4] = Double.parseDouble(timeparse[0])*3600+Double.parseDouble(timeparse[1])*60+Double.parseDouble(timeparse[2]); //time since midnight
-            } //outer for
-
-            scrSCH.close();
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        } //catch
-        //*****schedule file now an array*****
-
-
-
-        //*****bring transfer file into array*****
-        try { //reads transfer file to an array
-            BufferedReader scrTR = new BufferedReader(new FileReader(transferfile));
-            scrTR.readLine(); //read and discard header
-            transferLines--;
-
-            for(i=0; i<transferLines; i++) {
-                currentline = scrTR.readLine().split(",");
-
-                if(currentline[0] != currentline[2]) {
-                
-                    transfer[i][0] = Double.parseDouble(currentline[0]);
-                    transfer[i][1] = Double.parseDouble(currentline[1]);
-                    transfer[i][2] = Double.parseDouble(currentline[2]);
-                    transfer[i][3] = Double.parseDouble(currentline[3]);
-
-                }
-
-            } //outer for
-
-            scrTR.close();
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        } //catch
-        //*****transfer file now an array*****
-
-
         //*****bring taz travel time matrix file into array*****
         try { //reads TAZ matrix file to an array
             BufferedReader scrTT = new BufferedReader(new FileReader(tazfile));
@@ -222,6 +96,11 @@ public class Master1 {
             System.out.println ("exception:" + e );
         } //catch
         //*****taz travel time matrix now an array*****
+
+        for (String oStopId : gtfsData.stopIds()) {
+            
+        }
+
 
         double cstop, cline, cTT, tstop, tTT, kstop, kline, ktime;
         try {

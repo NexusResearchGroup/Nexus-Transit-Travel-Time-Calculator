@@ -1,23 +1,41 @@
 import java.lang.Math;
+import java.util.*;
+import java.io.*;
 
 public class Haversine {
-    private static double defaultRadius = 6371.0; //meters
+    private static double defaultRadius = 6371000.0; //meters
     
     public static void main(String args[]) {
-        GeoPoint pointA = new GeoPoint(Double.parseDouble(args[0]), Double.parseDouble(args[1]));
-        GeoPoint pointB = new GeoPoint(Double.parseDouble(args[2]), Double.parseDouble(args[3]));
-        System.out.println(GeoPoint.toString(pointA));
-        System.out.println(GeoPoint.toString(pointB));
-        double result = distanceBetween(pointA, pointB);
-        System.out.println(Double.toString(result));
+        // GeoPoint pointA = new GeoPoint(Double.parseDouble(args[0]), Double.parseDouble(args[1]));
+//         GeoPoint pointB = new GeoPoint(Double.parseDouble(args[2]), Double.parseDouble(args[3]));
+//         System.out.println(GeoPoint.toString(pointA));
+//         System.out.println(GeoPoint.toString(pointB));
+//         double result = distanceBetween(pointA, pointB);
+//         System.out.println(Double.toString(result));
+//
+		try {
+			File stopFile = new File("stops.txt");
+			BufferedReader stopFileReader = new BufferedReader(new FileReader(stopFile));
+			stopFileReader.readLine();
+			String row[] = stopFileReader.readLine().split(",");
+			GeoPoint lastPoint = new GeoPoint(Double.parseDouble(row[3]), Double.parseDouble(row[4]));
+			GeoPoint thisPoint = null;
+			while (stopFileReader.ready()) {
+				row = stopFileReader.readLine().split(",");
+				thisPoint = new GeoPoint(Double.parseDouble(row[3]), Double.parseDouble(row[4]));
+				System.out.println(Double.toString(distanceBetween(lastPoint, thisPoint)));
+				lastPoint = thisPoint;
+			}
+		} catch (Exception e) {
+		}
+			
     }
     
     public static double distanceBetween(GeoPoint pointA, GeoPoint pointB) {
-        return distance(pointA, pointB, defaultRadius);
+        return distanceBetween(pointA, pointB, defaultRadius);
     }
     
     public static double distanceBetween(GeoPoint pointA, GeoPoint pointB, double radius) {
-        System.out.println(Double.toString(defaultRadius));
         double lat1 = pointA.lat;
         double lat2 = pointB.lat;
         double lon1 = pointA.lon;
