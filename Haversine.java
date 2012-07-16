@@ -35,6 +35,11 @@ public class Haversine {
         return distanceBetween(pointA, pointB, defaultRadius);
     }
     
+    public static double secondsBetween(GeoPoint pointA, GeoPoint pointB, double speed) {
+        // Speed is in m/h
+        return (distanceBetween(pointA, pointB) / speed * 3600.0);
+    }
+    
     public static double distanceBetween(GeoPoint pointA, GeoPoint pointB, double radius) {
         double lat1 = pointA.lat;
         double lat2 = pointB.lat;

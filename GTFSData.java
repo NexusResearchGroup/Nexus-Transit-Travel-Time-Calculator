@@ -8,73 +8,42 @@ public class GTFSData {
     private static final String stopTimesFileName = "stop_times.txt";
     private static final String stopsFileName = "stops.txt";
     private static final String routesFileName = "routes.txt";
-    private static final double transferThreshold = 400.0; //meters
+    private static final double transferThreshold = 400.0; // meters
+    private static final double stopJoinThreshold = 5000.0;; // meters
+    private static final double walkSpeed = 5000.0; // m/h
+    private static final double circuityAdjustment = 1.2;
     
     private String selectedServiceId = "";
-    private int beginTime;
-    private int endTime;
 	private Map<String, GTFSStop> stops = null;
 	private Map<String, GTFSRoute> routes = null;
 	private Map<String, GTFSTrip> trips = null;
-	private Map<String, TTTODPoint> points = null;
+	private Map<String, ODPoint> points = null;
 	
     public static void main (String[] args) {
-        GTFSData g = new GTFSData(new File("google_transit.zip"), "MAY12-Multi-Weekday-01");
-        for (GTFSStop s : g.transferStopsForStopId("1318")) {
-            System.out.println(s.id);
-        }
+        // Usage: GTFSData google_transit.zip points.csv MAY12-Multi-Weekday-01
+        String gtfsFileName = args[0];
+        String pointsFileName = args[1];
+        String selectedServiceId = args[2];
+//         int beginTime = Integer.parseInt(args[2]);
+//         int endTime = Integer.parseInt(args[3]);
+//         Set<String> selectedRoutes = new HashSet<String>(Arrays.asList(args[4].split(",")));
+        
+        GTFSData g = new GTFSData(gtfsFileName, pointsFileName, selectedServiceId);
+        
+//         for (GTFSStop stop : g.getStops()) {
+//             System.out.println(stop.id);
+//             for (String pointId : stop.getPoints()) {
+//                 System.out.println("    " + pointId);
+//             }
+//         }
     }
     
     public static int gtfsTimeToSeconds(String timeString) {
         String[] timePieces = timeString.split(":");
         return (3600 * Integer.parseInt(timePieces[0])) + (60 * Integer.parseInt(timePieces[1])) + Integer.parseInt(timePieces[2]);
     }
-	
-	private void addStop(GTFSStop newStop) throws Exception {
-        if (stops.containsKey(newStop.id)) {
-            throw new Exception("Skipped duplicate stop ID: " + newStop.id);
-        } else {
-            stops.put(newStop.id, newStop);
-            updateStopTransfers(newStop);
-        }
-	}
-	
-	private void addRoute(GTFSRoute newRoute) throws Exception {
-	    if (routes.containsKey(newRoute.id)) {
-	        throw new Exception("Duplicate route ID: " + newRoute.id);
-	    } else {
-	        routes.put(newRoute.id, newRoute);
-	    }
-	}
-	
-	private void addTrip(GTFSTrip newTrip) throws Exception {
-	    if (trips.containsKey(newTrip.id)) {
-	        throw new Exception("Duplicate trip ID: " + newTrip.id);
-	    } else {
-	        trips.put(newTrip.id, newTrip);
-	        routes.get(newTrip.routeId).trips.add(newTrip);
-	    }
-	}
-	
-	private void addStopTime(GTFSStopTime newStopTime) throws Exception {
-	    if ( !(stops.containsKey(newStopTime.stopId)) ) {
-	        throw new Exception("Trying to add stop time for invalid stop ID: " + newStopTime.stopId);
-	    } else if ( !(trips.containsKey(newStopTime.tripId)) ) {
-	        throw new Exception("Trying to add stop time for invalid trip ID: " + newStopTime.tripId);
-	    } else {
-	        GTFSTrip trip = trips.get(newStopTime.tripId);
-	        GTFSRoute route = routes.get(trip.routeId);
-	        GTFSStop stop = stops.get(newStopTime.stopId);
-	        
-	        stop.routes.add(route);
-	        stop.addTripTime(trip, newStopTime.time);
-	        route.stops.add(stop);
-	        route.trips.add(trip);
-	        trip.stopTimes.add(newStopTime);
-	    }
-	}
-	
-    private BufferedReader bufferedReaderFromZipFileEntry(ZipFile zipFile, String fileName) {        
+
+    private static BufferedReader bufferedReaderFromZipFileEntry(ZipFile zipFile, String fileName) {        
         BufferedReader reader;
         
         try {
@@ -86,104 +55,218 @@ public class GTFSData {
         
         return reader;
     }	
+	
+	private void addStop(String stopId, String lat, String lon) throws Exception {
+        GeoPoint location = new GeoPoint(Double.parseDouble(lat), Double.parseDouble(lon));
+        addStop(stopId, location);
+	}
+	
+	private void addStop(String stopId, GeoPoint location) throws Exception {
+	    if (stops.containsKey(stopId)) {
+	        throw new Exception("Duplicate stop ID: " + stopId);
+	    } else {
+	        GTFSStop stop = new GTFSStop(stopId, location);
+	        stops.put(stopId, stop);
+	        updateStopTransfers(stop);
+	    }
+	}
+	
+	private void addRoute(String routeId, String routeName) throws Exception {
+	    if (routes.containsKey(routeId)) {
+	        throw new Exception("Duplicate route ID: " + routeId);
+	    } else {
+	        GTFSRoute route = new GTFSRoute(routeId, routeName);
+	        routes.put(routeId, route);
+	    }
+	}
+	
+	private void addTrip(String tripId, String routeId) throws Exception {
+	    if (trips.containsKey(tripId)) {
+	        throw new Exception("Duplicate trip ID: " + tripId);
+	    } else {
+	        GTFSTrip trip = new GTFSTrip(tripId, routeId);
+	        trips.put(tripId, trip);
+	        routes.get(routeId).addTrip(trip);
+	    }
+	}
+	
+	private void addTripStopTime(String tripId, String stopId, int time) throws Exception {
+	    GTFSTrip trip = trips.get(tripId);
+	    GTFSRoute route = routes.get(trip.routeId);
+	    GTFSStop stop = stops.get(stopId);
+	    
+        stop.addRoute(route);
+        stop.addTripTime(trip, time);
+        route.addStop(stop);
+        route.addTrip(trip);
+        trip.addStopTime(stop, time);
+
+	}
+	
+	private void addTripStopTime(String tripId, String stopId, String timeString) throws Exception {
+	    int time = GTFSData.gtfsTimeToSeconds(timeString);
+	    addTripStopTime(tripId, stopId, time);
+	}
+	
+	private void addODPoint(String pointId, String lat, String lon) throws Exception {
+        GeoPoint location = new GeoPoint(Double.parseDouble(lat), Double.parseDouble(lon));
+        addODPoint(pointId, location);
+	}
+	
+	private void addODPoint(String pointId, GeoPoint location) throws Exception {
+	    double stopPointDistance;
+	    Integer accessTime;
+	    
+	    if (points.containsKey(pointId)) {
+	        throw new Exception("Duplicate point ID: " + pointId);
+	    } else {
+	        ODPoint point = new ODPoint(pointId, location);
+	        points.put(pointId, point);
+	        for (GTFSStop stop : stops.values()) {
+	            stopPointDistance = Haversine.distanceBetween(stop.location, point.location) * circuityAdjustment;
+	            if (stopPointDistance <= stopJoinThreshold) {
+	                accessTime = (int)Math.round(stopPointDistance / walkSpeed * 3600);
+	                stop.addPoint(pointId, accessTime);
+	            }
+	        }
+	    }
+	}
 
 	private void loadStops(ZipFile zipFile) {
 	    System.out.println("Loading stops...");
-	    GeoPoint location;
-	    GTFSStop newStop;
-	    double stopLat;
-	    double stopLon;
-	    String stopID;
 	    String[] row;
-	    BufferedReader stopReader = bufferedReaderFromZipFileEntry(zipFile, stopsFileName);
+	    BufferedReader stopReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, stopsFileName);
 	    
 	    if (stops == null) { stops = new HashMap<String, GTFSStop>(); }
 	    
-        try {
-            //swallow the csv headers
-            stopReader.readLine();
-            
+	    try {
+	        //swallow the csv headers
+	        stopReader.readLine();
             while (stopReader.ready()) {
                 row = stopReader.readLine().split(",");
-                stopID = row[0];
-                stopLat = Double.parseDouble(row[3]);
-                stopLon = Double.parseDouble(row[4]);
-                location = new GeoPoint(stopLat, stopLon);
-                newStop = new GTFSStop(stopID, location);
-                addStop(newStop);
+                try {
+                    addStop(row[0], row[3], row[4]);
+                }
+                catch (Exception e) {
+                    System.err.println(e.getMessage());
+                }
             }
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        }    
+        } catch (IOException e) {
+            System.err.println("Error reading stops; aborting");
+            return;
+        }
+
 	}
 	
 	private void loadRoutes(ZipFile zipFile) {
         System.out.println("Loading routes...");
 	    String[] row;
-	    GTFSRoute newRoute;
-	    BufferedReader routeReader = bufferedReaderFromZipFileEntry(zipFile, routesFileName);
+	    BufferedReader routeReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, routesFileName);
 	    
 	    if (routes == null) { routes = new HashMap<String, GTFSRoute>(); }
 	    
 	    try {
 	        //swallow the csv headers
 	        routeReader.readLine();
-	        
-	        while (routeReader.ready()) {
-	            row = routeReader.readLine().split(",");
-                newRoute = new GTFSRoute(row[0], row[2]);
-                addRoute(newRoute);
+            while (routeReader.ready()) {
+                row = routeReader.readLine().split(",");
+                try {
+                    addRoute(row[0], row[2]);
+                }
+                catch (Exception e) {
+                    System.err.println(e.getMessage());
+                }
             }
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        }  
+        } catch (IOException e) {
+            System.err.println("Error reading routes; aborting");
+            return;
+        }
+
 	}
 	
 	private void loadTrips(ZipFile zipFile) {
 	    System.out.println("Loading trips...");
 	    String[] row;
-	    GTFSTrip newTrip;
-	    BufferedReader tripReader = bufferedReaderFromZipFileEntry(zipFile, tripsFileName);
+	    BufferedReader tripReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, tripsFileName);
 	    
 	    if (trips == null) { trips = new HashMap<String, GTFSTrip>(); }
 	    
 	    try {
 	        //swallow the csv headers
 	        tripReader.readLine();
-	        
-	        while (tripReader.ready()) {
-	            row = tripReader.readLine().split(",");
-	            if (row[1].equals(selectedServiceId) &&
-	                ) { // only process trips for the selected service Id
-                    newTrip = new GTFSTrip(row[2], row[0]);
-	                addTrip(newTrip);
-	            }
-	        }
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        }  
+            while (tripReader.ready()) {
+                row = tripReader.readLine().split(",");
+                if (row[1].equals(selectedServiceId)) { // only process trips for the selected service Id
+                    try {
+                        addTrip(row[2], row[0]);
+                    }
+                    catch (Exception e) {
+                        System.err.println(e.getMessage());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading routes; aborting");
+            return;
+        }
 	}
 	
-	private void loadStopTimes(ZipFile zipFile) {
+	private void loadTripStopTimes(ZipFile zipFile) {
 	    System.out.println("Loading stop times...");
 	    String[] row;
-	    GTFSStopTime newStopTime;
-	    BufferedReader stopTimeReader = bufferedReaderFromZipFileEntry(zipFile, stopTimesFileName);
-	    	    
+	    BufferedReader stopTimeReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, stopTimesFileName);
+	    
 	    try {
 	        //swallow the csv headers
 	        stopTimeReader.readLine();
-	        
-	        while (stopTimeReader.ready()) {
-	            row = stopTimeReader.readLine().split(",");
-                if (trips.containsKey(row[0])) { // only process stoptimes for already-loaded trips
-                    newStopTime = new GTFSStopTime(row[0], row[3], row[2]);
-                    addStopTime(newStopTime);
+            while (stopTimeReader.ready()) {
+                row = stopTimeReader.readLine().split(",");
+                if (trips.containsKey(row[0])) { // only process trips for the selected service Id
+                    try {
+                        addTripStopTime(row[0], row[3], row[2]);
+                    }
+                    catch (Exception e) {
+                        System.err.println(e.getMessage());
+                    }
                 }
-	        }
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        }  
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading routes; aborting");
+            return;
+        }
+	}
+	
+	private void loadODPoints(File pointsFile) {
+	    System.out.println("Loading OD points...");
+	    String[] row;
+	    BufferedReader pointReader;
+
+	    if (points == null) { points = new HashMap<String, ODPoint>(); }
+
+
+	    try {
+	        pointReader = new BufferedReader(new FileReader(pointsFile));
+	    } catch (FileNotFoundException e) {
+	        System.err.println(e.getMessage());
+	        return;
+	    }
+	    	    
+	    try {
+	        //swallow the csv headers
+	        pointReader.readLine();
+            while (pointReader.ready()) {
+                row = pointReader.readLine().split(",");
+                try {
+                    addODPoint(row[0], row[1], row[2]);
+                }
+                catch (Exception e) {
+                    System.err.println(e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading points; aborting");
+            return;
+        }
 	}
 	
 	private void updateStopTransfers(GTFSStop newStop) {
@@ -195,29 +278,49 @@ public class GTFSData {
 	    }
 	}
 	
-	public GTFSData(String gtfsFileName, String serviceId, int inputBeginTime, int inputEndTime) {
+	public GTFSData(String gtfsFileName, String pointsFileName, String serviceId) {
         selectedServiceId = serviceId;
-        beginTime = inputBeginTime;
-        endTime = inputEndTime;
-        ZipFile zipFile;
+        
         try {
-            zipFile = new ZipFile(gtfsFileName);
+            ZipFile zipFile = new ZipFile(gtfsFileName);
             loadStops(zipFile);
             loadRoutes(zipFile);
             loadTrips(zipFile);
-            loadStopTimes(zipFile);
+            loadTripStopTimes(zipFile);
         } catch (Exception e) {
             System.out.println ("exception:" + e );
         }
+        
+        try {
+            File pointsFile = new File(pointsFileName);
+            loadODPoints(pointsFile);
+        } catch (Exception e) {
+            System.out.println ("exception:" + e);
+        }
 	}
 	
-    public Set<GTFSStop> transferStopsForStopId(String stopId) {
-        return stops.get(stopId).transferStops;
-    }
-    
-    public Set<String> stopIds() {
-        return stops.keySet();
-    }
-    
+	public Collection<GTFSRoute> getRoutes() {
+	    return routes.values();
+	}
+	
+	public Set<String> getRouteIds() {
+	    return routes.keySet();
+	}
+	
+	public Collection<GTFSStop> getStops() {
+	    return stops.values();
+	}
+	
+	public Collection<ODPoint> getPoints() {
+	    return points.values();
+	}
+	
+	public Collection<GTFSTrip> getTrips() {
+	    return trips.values();
+	}
+	
+	public GTFSRoute routeWithId(String id) {
+	    return routes.get(id);
+	}
     
 }

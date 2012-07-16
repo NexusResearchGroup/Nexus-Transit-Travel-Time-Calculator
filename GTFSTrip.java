@@ -4,36 +4,35 @@ import java.util.*;
 public class GTFSTrip {
     public String id;
     public String routeId;
-    public List<GTFSStopTime> stopTimes;
+    public NavigableMap<Integer, Set<GTFSStop>> stopTimes;
     
     public GTFSTrip(String inputId, String inputRouteId) {
         id = inputId;
         routeId = inputRouteId;
-        stopTimes = new ArrayList<GTFSStopTime>();
+        stopTimes = new TreeMap<Integer, Set<GTFSStop>>();
     }
     
-    public List<GTFSStopTime> stopsTimesAfterTime(int time) {
-        GTFSStopTime lastStopTime;
-        // check the last stoptime to see if we can ignore the whole trip
-        lastStopTime = stopTimes.get(stopTimes.size() - 1);
-        if (lastStopTime.time < time) {
-            return Collections.<GTFSStopTime>emptyList();
-        }
-    
-        for (GTFSStopTime curStopTime : stopTimes) {
-            if (curStopTime.time >= time) {
-                return stopTimes.subList(stopTimes.indexOf(curStopTime), stopTimes.size());
-            }
-        }
-        
-        return Collections.<GTFSStopTime>emptyList();
+    public NavigableMap<Integer, Set<GTFSStop>> stopTimesAfter(Integer time) {
+        return stopTimes.tailMap(time, false);
     }
     
     public int firstStopTime() {
-        
+        Map.Entry<Integer, Set<GTFSStop>> firstEntry = stopTimes.firstEntry();
+        return firstEntry.getKey();
     }
     
     public int lastStopTime() {
+        Map.Entry<Integer, Set<GTFSStop>> lastEntry = stopTimes.lastEntry();
+        return lastEntry.getKey();
+    }
+    
+    public void addStopTime(GTFSStop stop, int time) {
+        if (stopTimes.containsKey(time)) {
+            stopTimes.get(time).add(stop);
+        } else {
+            stopTimes.put(time, new HashSet<GTFSStop>());
+            stopTimes.get(time).add(stop);
+        }
     }
     
 }

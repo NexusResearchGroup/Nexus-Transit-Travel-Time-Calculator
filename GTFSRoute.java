@@ -13,4 +13,12 @@ public class GTFSRoute {
         trips = new HashSet<GTFSTrip>();
         stops = new HashSet<GTFSStop>();
     }
+    
+    public void addStop(GTFSStop stop) {
+        stops.add(stop);
+    }
+    
+    public void addTrip(GTFSTrip trip) {
+        trips.add(trip);
+    }
 }
