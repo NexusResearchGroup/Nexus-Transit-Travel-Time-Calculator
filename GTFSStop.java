@@ -28,6 +28,7 @@ public class GTFSStop {
     }
     
     public void addRoute(GTFSRoute route) {
+        //System.out.println("Adding route " + route.name + " to stop " + id);
         routes.add(route);
     }
     
@@ -41,6 +42,18 @@ public class GTFSStop {
     
     public Set<String> getPointIds() {
         return pointAccessTimes.keySet();
+    }
+    
+    public int getAccessTimeForPointId(String pointId) {
+        return pointAccessTimes.get(pointId);
+    }
+    
+    public Set<GTFSRoute> getRoutes() {
+        return Collections.unmodifiableSet(routes);
+    }
+    
+    public Set<GTFSStop> getTransferStops() {
+        return Collections.unmodifiableSet(transferStops);
     }
     
     public SortedMap<Integer, Set<GTFSTrip>> tripsBetween(int startTime, int endTime) {

@@ -9,6 +9,7 @@ public class GTFSTrip {
     public GTFSTrip(String inputId, String inputRouteId) {
         id = inputId;
         routeId = inputRouteId;
+        //System.out.println("Trip " +id + " belongs to route " + routeId);
         stopTimes = new TreeMap<Integer, Set<GTFSStop>>();
     }
     

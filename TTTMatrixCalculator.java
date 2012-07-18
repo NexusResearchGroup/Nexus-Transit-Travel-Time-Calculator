@@ -42,7 +42,11 @@ public class TTTMatrixCalculator {
         String serviceId = args[2];
         int startTime = Integer.parseInt(args[3]);
         int endTime = Integer.parseInt(args[4]);
-        Set<String> selectedRoutes = new HashSet<String>(Arrays.asList(args[5].split(",")));
+        if (args[5].equals("")) {
+            Set<String> selectedRoutes = new HashSet<String>();
+        } else {
+            Set<String> selectedRoutes = new HashSet<String>(Arrays.asList(args[5].split(",")));
+        }
         String outputFileName = args[6];
         
         TTTMatrixCalculator c = new TTTMatrixCalculator(gtfsFileName, pointsFileName, serviceId, startTime, endTime, selectedRoutes);
@@ -86,7 +90,7 @@ public class TTTMatrixCalculator {
 
                 for (GTFSTrip trip1 : ostopTripTimes.get(departureTime1)) {
                     if (selectedRouteIds.contains(gtfsData.routeWithId(trip1.routeId).name)) {
-                        //System.out.println("Stop " +ostop.id+ ",  Route " + trip1.routeId + ", trip " + trip1.id);
+                        System.out.println("Stop " +ostop.id+ ",  Route " + trip1.routeId + ", trip " + trip1.id);
                         SortedMap<Integer, Set<GTFSStop>> destinationTimes1 = trip1.stopTimesAfter(departureTime1);
                         
                         for (int arrivalTime1 : destinationTimes1.keySet()) {
@@ -96,7 +100,7 @@ public class TTTMatrixCalculator {
                             
                                 for (GTFSStop tstop : stop1.transferStops) {
                                     int transferAccessTime = (int)Math.round(Haversine.secondsBetween(tstop.location, stop1.location, walkSpeed) * circuityAdjustment);
-                                    System.out.println("Transfer time to stop " +tstop.id+ ": " + transferAccessTime);
+                                    //System.out.println("Transfer time to stop " +tstop.id+ ": " + transferAccessTime);
                                     SortedMap<Integer, Set<GTFSTrip>> tstopTripTimes = tstop.tripsBetween(arrivalTime1 + transferAccessTime, arrivalTime1 + maxTransferTime);
                                     
                                     for (int departureTime2 : tstopTripTimes.keySet()) {
@@ -124,7 +128,7 @@ public class TTTMatrixCalculator {
     }
     
     private void connectPointsFromStops(GTFSStop ostop, GTFSStop dstop, int elapsedTime) {
-        System.out.println("*** Reached stop " + dstop.id + " from stop " + ostop.id + " in " + elapsedTime + " seconds");
+        //System.out.println("*** Reached stop " + dstop.id + " from stop " + ostop.id + " in " + elapsedTime + " seconds");
         for (String opointId : ostop.getPointIds()) {
             for (String dpointId : dstop.getPointIds()) {
                 int originalTime = resultMatrix.get(opointId).get(dpointId);

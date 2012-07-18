@@ -20,15 +20,25 @@ public class GTFSData {
 	private Map<String, ODPoint> points = null;
 	
     public static void main (String[] args) {
-        // Usage: GTFSData google_transit.zip points.csv MAY12-Multi-Weekday-01
+        // Usage: GTFSData google_transit.zip points.csv MAY12-Multi-Weekday-01 s stop_line.csv
         String gtfsFileName = args[0];
         String pointsFileName = args[1];
         String selectedServiceId = args[2];
+        String command = args[3];
+        String outputFileName = args[4];
 //         int beginTime = Integer.parseInt(args[2]);
 //         int endTime = Integer.parseInt(args[3]);
 //         Set<String> selectedRoutes = new HashSet<String>(Arrays.asList(args[4].split(",")));
         
         GTFSData g = new GTFSData(gtfsFileName, pointsFileName, selectedServiceId);
+        
+        if (command.equals("s")) {
+            g.writeStopLineFile(outputFileName);
+        } else if (command.equals("t")) {
+            g.writeTransferFile(outputFileName);
+        } else if (command.equals("c")) {
+            g.writeStopPointFile(outputFileName);
+        }
         
 //         for (GTFSStop stop : g.getStops()) {
 //             System.out.println(stop.id);
@@ -36,6 +46,72 @@ public class GTFSData {
 //                 System.out.println("    " + pointId);
 //             }
 //         }
+    }
+    
+    private void writeStopLineFile(String outputFileName) {
+        System.out.println("Writing stop-line file...");
+        BufferedWriter writer;
+        try {
+            writer = new BufferedWriter(new FileWriter(outputFileName));        
+            writer.write("stopID,lineno");
+            writer.newLine();
+
+            for (GTFSStop stop : getStops()) {
+                //System.out.println(stop.id);
+                for (GTFSRoute route : stop.routes) {
+                    //System.out.println("  "+route.name);
+                    writer.write(stop.id + "," + route.name);
+                    writer.newLine();
+                }
+            }
+            writer.close();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+    }
+    
+    private void writeTransferFile(String outputFileName) {
+        System.out.println("Writing transfer file...");
+        BufferedWriter writer;
+        try {
+            writer = new BufferedWriter(new FileWriter(outputFileName));        
+            writer.write("line1,stop1,line2,stop2");
+            writer.newLine();
+
+            for (GTFSStop stop1 : getStops()) {
+                for (GTFSRoute route1 : stop1.getRoutes()) {
+                    for (GTFSStop stop2 : stop1.getTransferStops()) {
+                        for (GTFSRoute route2 : stop2.getRoutes()) {
+                            writer.write(route1.name +","+ stop1.id +","+ route2.name +","+ stop2.id);
+                            writer.newLine();
+                        }
+                    }
+                }
+            }
+            writer.close();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+    }
+    
+    private void writeStopPointFile(String outputFileName) {
+        System.out.println("Writing stop-point file...");
+        BufferedWriter writer;
+        try {
+            writer = new BufferedWriter(new FileWriter(outputFileName));        
+            writer.write("stopID,pointID,access_time");
+            writer.newLine();
+
+            for (GTFSStop stop : getStops()) {
+                for (String pointId : stop.getPointIds()) {
+                    writer.write(stop.id +","+ pointId +","+ (double)stop.getAccessTimeForPointId(pointId) / 60);
+                    writer.newLine();
+                }
+            }
+            writer.close();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
     
     public static int gtfsTimeToSeconds(String timeString) {
@@ -84,6 +160,7 @@ public class GTFSData {
 	    if (trips.containsKey(tripId)) {
 	        throw new Exception("Duplicate trip ID: " + tripId);
 	    } else {
+	        //System.out.println("Creating new trip " + tripId + " for route " + routeId);
 	        GTFSTrip trip = new GTFSTrip(tripId, routeId);
 	        trips.put(tripId, trip);
 	        routes.get(routeId).addTrip(trip);
@@ -92,6 +169,7 @@ public class GTFSData {
 	
 	private void addTripStopTime(String tripId, String stopId, int time) throws Exception {
 	    GTFSTrip trip = trips.get(tripId);
+	    //System.out.println("This trip belongs to route " + trip.routeId);
 	    GTFSRoute route = routes.get(trip.routeId);
 	    GTFSStop stop = stops.get(stopId);
 	    

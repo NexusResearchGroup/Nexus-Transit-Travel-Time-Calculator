@@ -22,6 +22,7 @@ public class StopLineListCreator {
 	    for (StopLinePair pair : stopLineList) {
 	        for (GTFSRoute route : pair.routes) {
 	            System.out.println(pair.stop.id + "," + pair.route.id);
+	        }
 	    }
 	}
 	
