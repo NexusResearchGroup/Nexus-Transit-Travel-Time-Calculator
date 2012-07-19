@@ -26,9 +26,6 @@ public class GTFSData {
         String selectedServiceId = args[2];
         String command = args[3];
         String outputFileName = args[4];
-//         int beginTime = Integer.parseInt(args[2]);
-//         int endTime = Integer.parseInt(args[3]);
-//         Set<String> selectedRoutes = new HashSet<String>(Arrays.asList(args[4].split(",")));
         
         GTFSData g = new GTFSData(gtfsFileName, pointsFileName, selectedServiceId);
         
@@ -40,12 +37,6 @@ public class GTFSData {
             g.writeStopPointFile(outputFileName);
         }
         
-//         for (GTFSStop stop : g.getStops()) {
-//             System.out.println(stop.id);
-//             for (String pointId : stop.getPoints()) {
-//                 System.out.println("    " + pointId);
-//             }
-//         }
     }
     
     private void writeStopLineFile(String outputFileName) {
