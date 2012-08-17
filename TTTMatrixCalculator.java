@@ -2,11 +2,11 @@ import java.io.*;
 import java.util.*;
 
 public class TTTMatrixCalculator {
-    private GTFSData gtfsData;
-    private int startTime;
-    private int endTime;
-    private Set<String> selectedRouteIds;
-    private Map<String, Map<String, Integer>> resultMatrix;
+    private static GTFSData gtfsData;
+    private static int startTime;
+    private static int endTime;
+    private static Set<String> selectedRouteIds;
+    private static Map<String, Map<String, Integer>> resultMatrix;
     private static final double walkSpeed = 5000.0; // m/h
     private static final double circuityAdjustment = 1.2;
     private static final int maxTransferTime = 900;
@@ -36,20 +36,21 @@ public class TTTMatrixCalculator {
     }
 
     public static void main (String[] args) {
-        // Usage: TTTMatrixCalculator google_transit.zip points.csv MAY12-Multi-Weekday-01 25200 32400 "2,3,53,114" results.csv
+        // Usage: TTTMatrixCalculator google_transit.zip points.csv SEP09-Multi-Weekday-01 25200 32400 "2,3,53,114" results.csv
         String gtfsFileName = args[0];
         String pointsFileName = args[1];
         String serviceId = args[2];
         int startTime = Integer.parseInt(args[3]);
         int endTime = Integer.parseInt(args[4]);
+        Set<String> selectedRouteIds = null;
         if (args[5].equals("")) {
-            Set<String> selectedRoutes = new HashSet<String>();
+            selectedRouteIds = new HashSet<String>();
         } else {
-            Set<String> selectedRoutes = new HashSet<String>(Arrays.asList(args[5].split(",")));
+            selectedRouteIds = new HashSet<String>(Arrays.asList(args[5].split(",")));
         }
         String outputFileName = args[6];
         
-        TTTMatrixCalculator c = new TTTMatrixCalculator(gtfsFileName, pointsFileName, serviceId, startTime, endTime, selectedRoutes);
+        TTTMatrixCalculator c = new TTTMatrixCalculator(gtfsFileName, pointsFileName, serviceId, startTime, endTime, selectedRouteIds);
         Map<String, Map<String, Integer>> matrix = c.calculateMatrix();
         TTTMatrixCalculator.writeMatrixToFile(matrix, outputFileName);
     }
