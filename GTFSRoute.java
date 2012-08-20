@@ -2,16 +2,16 @@ import java.io.*;
 import java.util.*;
 
 public class GTFSRoute {
-    public String id;
-    public String name;
-    public Set<GTFSTrip> trips;
-    public Set<GTFSStop> stops;
+    private String id;
+    private String name;
+    private Set<GTFSTrip> trips;
+    private Set<GTFSStop> stops;
     
     public GTFSRoute(String inputId, String inputName) {
-        id = inputId;
-        name = inputName;
-        trips = new HashSet<GTFSTrip>();
-        stops = new HashSet<GTFSStop>();
+        this.id = inputId;
+        this.name = inputName;
+        this.trips = new HashSet<GTFSTrip>();
+        this.stops = new HashSet<GTFSStop>();
     }
     
     public void addStop(GTFSStop stop) {
@@ -20,5 +20,29 @@ public class GTFSRoute {
     
     public void addTrip(GTFSTrip trip) {
         trips.add(trip);
+    }
+    
+    public String getId() {
+    	return id;
+    }
+    
+    public String getName() {
+    	return name;
+    }
+    
+    public GTFSTrip nextFutureTripForStop(GTFSStop stop, int time, int maxTime) {
+    	GTFSTrip nextTrip = null;
+    	int bestTime = Integer.MAX_VALUE;
+    	for (GTFSTrip trip : trips) {
+    		GTFSStopTime stopTime = trip.stopTimeAtStop(stop);
+    		if (stopTime != null) {
+    			int thisTime = stopTime.getTime();
+    			if (thisTime < bestTime && thisTime < maxTime) {
+    				bestTime = thisTime;
+    				nextTrip = trip;
+    			}
+    		}
+    	}
+    	return nextTrip;
     }
 }

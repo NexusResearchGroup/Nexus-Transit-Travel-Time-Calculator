@@ -2,38 +2,59 @@ import java.io.*;
 import java.util.*;
 
 public class GTFSTrip {
-    public String id;
-    public String routeId;
-    public NavigableMap<Integer, Set<GTFSStop>> stopTimes;
+    private String id;
+    private GTFSRoute route;
+    private SortedSet<GTFSStopTime> stopTimes;
+    private Map<GTFSStop, GTFSStopTime> timeStops;
+    private GTFSStopTime queryStopTime1;
+    private GTFSStopTime queryStopTime2;
     
-    public GTFSTrip(String inputId, String inputRouteId) {
-        id = inputId;
-        routeId = inputRouteId;
+    public GTFSTrip(String id, GTFSRoute route) {
+        this.id = id;
+        this.route = route;
         //System.out.println("Trip " +id + " belongs to route " + routeId);
-        stopTimes = new TreeMap<Integer, Set<GTFSStop>>();
+        stopTimes = new TreeSet<GTFSStopTime>();
+        timeStops = new HashMap<GTFSStop, GTFSStopTime>();
+        queryStopTime1 = new GTFSStopTime(null, null, 0);
+        queryStopTime2 = new GTFSStopTime(null, null, 0);
     }
     
-    public NavigableMap<Integer, Set<GTFSStop>> stopTimesAfter(Integer time) {
-        return stopTimes.tailMap(time, false);
+    public SortedSet<GTFSStopTime> stopTimesAtOrAfter(int time) {
+    	queryStopTime1.setTime(time);
+        return stopTimes.tailSet(queryStopTime1);
     }
     
-    public int firstStopTime() {
-        Map.Entry<Integer, Set<GTFSStop>> firstEntry = stopTimes.firstEntry();
-        return firstEntry.getKey();
+    public SortedSet<GTFSStopTime> stopTimesAfter(int time) {
+    	return stopTimesAtOrAfter(time+1);
     }
     
-    public int lastStopTime() {
-        Map.Entry<Integer, Set<GTFSStop>> lastEntry = stopTimes.lastEntry();
-        return lastEntry.getKey();
+    public GTFSStopTime firstStopTime() {
+        return stopTimes.first();
+    }
+      
+    public GTFSStopTime lastStopTime() {
+		return stopTimes.last();
     }
     
-    public void addStopTime(GTFSStop stop, int time) {
-        if (stopTimes.containsKey(time)) {
-            stopTimes.get(time).add(stop);
-        } else {
-            stopTimes.put(time, new HashSet<GTFSStop>());
-            stopTimes.get(time).add(stop);
-        }
+    public void addStopTime(GTFSStopTime stopTime) {
+		// add stopTime to list
+		stopTimes.add(stopTime);
+		
+		// add stopTime to stop index
+		timeStops.put(stopTime.getStop(), stopTime);
+		
     }
+    
+    public boolean visitsStop(GTFSStop stop) {
+    	return timeStops.containsKey(stop);
+    }
+    
+    public GTFSStopTime stopTimeAtStop(GTFSStop stop) {
+    	return timeStops.get(stop);
+    }
+    
+    public GTFSRoute getRoute() { return route; }
+    
+    public String getId() { return id; }
     
 }

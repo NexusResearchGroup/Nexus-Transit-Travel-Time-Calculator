@@ -2,29 +2,29 @@ import java.io.*;
 import java.util.*;
 
 public class GTFSStop {
-    public String id;
-    public GeoPoint location;
-    public Set<GTFSStop> transferStops;
-    public Set<GTFSRoute> routes;
-    public NavigableMap<Integer, Set<GTFSTrip>> tripTimes;
-    public Map<String, Integer> pointAccessTimes;
+    private String id;
+    private GeoPoint location;
+    private Map<GTFSStop, Integer> transferStopAccessTimes;
+    private Set<GTFSRoute> routes;
+    private SortedSet<GTFSStopTime> stopTimes;
+    private Map<ODPoint, Integer> pointAccessTimes;
+    private GTFSStopTime queryStopTime1;
+    private GTFSStopTime queryStopTime2;
     
-    public GTFSStop(String inputId, GeoPoint inputLocation) {
-        id = inputId;
-        location = inputLocation;
-        transferStops = new HashSet<GTFSStop>();
-        routes = new HashSet<GTFSRoute>();
-        tripTimes = new TreeMap<Integer, Set<GTFSTrip>>();
-        pointAccessTimes = new HashMap<String, Integer>();
+    public GTFSStop(String id, GeoPoint location) {
+        this.id = id;
+        this.location = location;
+        this.transferStopAccessTimes = new HashMap<GTFSStop, Integer>();
+        this.routes = new HashSet<GTFSRoute>();
+        this.stopTimes =  new TreeSet<GTFSStopTime>();
+        this.pointAccessTimes = new HashMap<ODPoint, Integer>();
+        this.queryStopTime1 = new GTFSStopTime(null, null, 0);
+        this.queryStopTime2 = new GTFSStopTime(null, null, 0);
     }
     
-    public void addTripTime(GTFSTrip trip, Integer time) {
-        if (tripTimes.containsKey(time)) {
-            tripTimes.get(time).add(trip);
-        } else {
-            tripTimes.put(time, new HashSet<GTFSTrip>());
-            tripTimes.get(time).add(trip);
-        }
+    public void addStopTime(GTFSStopTime stopTime) {
+		stopTimes.add(stopTime);
+		addRoute(stopTime.getTrip().getRoute());
     }
     
     public void addRoute(GTFSRoute route) {
@@ -32,44 +32,43 @@ public class GTFSStop {
         routes.add(route);
     }
     
-    public void addTransferStop(GTFSStop stop) {
-        transferStops.add(stop);
+    public void addTransferStop(GTFSStop stop, int accessTime) {
+        transferStopAccessTimes.put(stop, accessTime);
     }
     
-    public void addPoint(String pointID, Integer accessTime) {
-        pointAccessTimes.put(pointID, accessTime);
+    public Integer getAccessTimeForTransferStop(GTFSStop stop) {
+    	return transferStopAccessTimes.get(stop);
     }
     
-    public Set<String> getPointIds() {
+    public void addPoint(ODPoint point, int accessTime) {
+        pointAccessTimes.put(point, accessTime);
+    }
+    
+    public Set<ODPoint> getPoints() {
         return pointAccessTimes.keySet();
     }
     
-    public int getAccessTimeForPointId(String pointId) {
-        return pointAccessTimes.get(pointId);
+    public int getAccessTimeForPoint(ODPoint point) {
+        return pointAccessTimes.get(point);
     }
     
     public Set<GTFSRoute> getRoutes() {
-        return Collections.unmodifiableSet(routes);
+        return routes;
     }
     
     public Set<GTFSStop> getTransferStops() {
-        return Collections.unmodifiableSet(transferStops);
+        return transferStopAccessTimes.keySet();
     }
     
-    public SortedMap<Integer, Set<GTFSTrip>> tripsBetween(int startTime, int endTime) {
-        return tripTimes.subMap(startTime, endTime);
+    public SortedSet<GTFSStopTime> stopTimesBetween(int startTime, int endTime) {
+        queryStopTime1.setTime(startTime);
+        queryStopTime2.setTime(endTime);
+        return stopTimes.subSet(queryStopTime1, queryStopTime2);
     }
     
-    public Set<Integer> getDepartureTimesBetween(int startTime, int endTime) {
-        return tripTimes.subMap(startTime, endTime).keySet();
+    public GeoPoint getLocation() {
+    	return location;
     }
     
-    public void printDepartureTimes() {
-        String times = "";
-        for (int time : tripTimes.keySet()) {
-            times = times + " " + time;
-        }
-        System.out.println(times);
-    }
-    
+    public String getId() { return id; }
 }

@@ -18,6 +18,27 @@ public class GTFSData {
 	private Map<String, GTFSRoute> routes = null;
 	private Map<String, GTFSTrip> trips = null;
 	private Map<String, ODPoint> points = null;
+
+	public GTFSData(String gtfsFileName, String pointsFileName, String serviceId) {
+        selectedServiceId = serviceId;
+        
+        try {
+            ZipFile zipFile = new ZipFile(gtfsFileName);
+            loadStops(zipFile);
+            loadRoutes(zipFile);
+            loadTrips(zipFile);
+            loadTripStopTimes(zipFile);
+        } catch (Exception e) {
+            System.out.println ("exception:" + e );
+        }
+        
+        try {
+            File pointsFile = new File(pointsFileName);
+            loadODPoints(pointsFile);
+        } catch (Exception e) {
+            System.out.println ("exception:" + e);
+        }
+	}
 	
     public static void main (String[] args) {
         // Usage: GTFSData google_transit.zip points.csv MAY12-Multi-Weekday-01 s stop_line.csv
@@ -49,9 +70,9 @@ public class GTFSData {
 
             for (GTFSStop stop : getStops()) {
                 //System.out.println(stop.id);
-                for (GTFSRoute route : stop.routes) {
+                for (GTFSRoute route : stop.getRoutes()) {
                     //System.out.println("  "+route.name);
-                    writer.write(stop.id + "," + route.name);
+                    writer.write(stop.getId() + "," + route.getName());
                     writer.newLine();
                 }
             }
@@ -73,7 +94,7 @@ public class GTFSData {
                 for (GTFSRoute route1 : stop1.getRoutes()) {
                     for (GTFSStop stop2 : stop1.getTransferStops()) {
                         for (GTFSRoute route2 : stop2.getRoutes()) {
-                            writer.write(route1.name +","+ stop1.id +","+ route2.name +","+ stop2.id);
+                            writer.write(route1.getName() +","+ stop1.getId() +","+ route2.getName() +","+ stop2.getId());
                             writer.newLine();
                         }
                     }
@@ -94,8 +115,8 @@ public class GTFSData {
             writer.newLine();
 
             for (GTFSStop stop : getStops()) {
-                for (String pointId : stop.getPointIds()) {
-                    writer.write(stop.id +","+ pointId +","+ (double)stop.getAccessTimeForPointId(pointId) / 60);
+                for (ODPoint point : stop.getPoints()) {
+                    writer.write(stop.getId() +","+ point.getId() +","+ (double)stop.getAccessTimeForPoint(point) / 60);
                     writer.newLine();
                 }
             }
@@ -152,24 +173,24 @@ public class GTFSData {
 	        throw new Exception("Duplicate trip ID: " + tripId);
 	    } else {
 	        //System.out.println("Creating new trip " + tripId + " for route " + routeId);
-	        GTFSTrip trip = new GTFSTrip(tripId, routeId);
+	        GTFSRoute route = routes.get(routeId);
+	        GTFSTrip trip = new GTFSTrip(tripId, route);
 	        trips.put(tripId, trip);
-	        routes.get(routeId).addTrip(trip);
+	        route.addTrip(trip);
 	    }
 	}
 	
 	private void addTripStopTime(String tripId, String stopId, int time) throws Exception {
 	    GTFSTrip trip = trips.get(tripId);
 	    //System.out.println("This trip belongs to route " + trip.routeId);
-	    GTFSRoute route = routes.get(trip.routeId);
+	    GTFSRoute route = trip.getRoute();
 	    GTFSStop stop = stops.get(stopId);
+	    GTFSStopTime stopTime = new GTFSStopTime(trip, stop, time);
 	    
-        stop.addRoute(route);
-        stop.addTripTime(trip, time);
+        stop.addStopTime(stopTime);
         route.addStop(stop);
         route.addTrip(trip);
-        trip.addStopTime(stop, time);
-
+        trip.addStopTime(stopTime);
 	}
 	
 	private void addTripStopTime(String tripId, String stopId, String timeString) throws Exception {
@@ -192,10 +213,10 @@ public class GTFSData {
 	        ODPoint point = new ODPoint(pointId, location);
 	        points.put(pointId, point);
 	        for (GTFSStop stop : stops.values()) {
-	            stopPointDistance = Haversine.distanceBetween(stop.location, point.location) * circuityAdjustment;
+	            stopPointDistance = Haversine.distanceBetween(stop.getLocation(), point.getLocation()) * circuityAdjustment;
 	            if (stopPointDistance <= stopJoinThreshold) {
 	                accessTime = (int)Math.round(stopPointDistance / walkSpeed * 3600);
-	                stop.addPoint(pointId, accessTime);
+	                stop.addPoint(point, accessTime);
 	            }
 	        }
 	    }
@@ -340,33 +361,15 @@ public class GTFSData {
 	
 	private void updateStopTransfers(GTFSStop newStop) {
 	    for (GTFSStop otherStop : stops.values()) {
-            if (Haversine.distanceBetween(newStop.location, otherStop.location) <= transferThreshold) {
-                otherStop.transferStops.add(newStop);
-                newStop.transferStops.add(otherStop);
+	    	if (otherStop == newStop) continue;
+	    	double distance = Haversine.distanceBetween(newStop.getLocation(), otherStop.getLocation()) * circuityAdjustment;
+            if (distance <= transferThreshold) {
+            	int transferTime = (int)Math.round(distance / walkSpeed * 3600);
+                otherStop.addTransferStop(newStop, transferTime);
+                newStop.addTransferStop(otherStop, transferTime);
             }
 	    }
-	}
-	
-	public GTFSData(String gtfsFileName, String pointsFileName, String serviceId) {
-        selectedServiceId = serviceId;
-        
-        try {
-            ZipFile zipFile = new ZipFile(gtfsFileName);
-            loadStops(zipFile);
-            loadRoutes(zipFile);
-            loadTrips(zipFile);
-            loadTripStopTimes(zipFile);
-        } catch (Exception e) {
-            System.out.println ("exception:" + e );
-        }
-        
-        try {
-            File pointsFile = new File(pointsFileName);
-            loadODPoints(pointsFile);
-        } catch (Exception e) {
-            System.out.println ("exception:" + e);
-        }
-	}
+	}	
 	
 	public Collection<GTFSRoute> getRoutes() {
 	    return routes.values();
@@ -380,6 +383,10 @@ public class GTFSData {
 	    return stops.values();
 	}
 	
+	public Set<String> getStopIds() {
+		return stops.keySet();
+	}
+	
 	public Collection<ODPoint> getPoints() {
 	    return points.values();
 	}
@@ -388,8 +395,16 @@ public class GTFSData {
 	    return trips.values();
 	}
 	
-	public GTFSRoute routeWithId(String id) {
+	public GTFSRoute getRouteForId(String id) {
 	    return routes.get(id);
+	}
+	
+	public GTFSTrip getTripForId(String id) {
+		return trips.get(id);
+	}
+	
+	public GTFSStop getStopForId(String id) {
+		return stops.get(id);
 	}
     
 }
