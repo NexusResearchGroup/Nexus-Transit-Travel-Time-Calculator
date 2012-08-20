@@ -44,6 +44,10 @@ public class GTFSStop {
         pointAccessTimes.put(point, accessTime);
     }
     
+    public void removePoint(ODPoint point) {
+        pointAccessTimes.remove(point);
+    }
+    
     public Set<ODPoint> getPoints() {
         return pointAccessTimes.keySet();
     }
