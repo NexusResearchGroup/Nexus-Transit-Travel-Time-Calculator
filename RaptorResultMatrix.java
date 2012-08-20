@@ -5,7 +5,15 @@ public class RaptorResultMatrix {
 	private Map<String, Map<String, RaptorResult>> matrix;
 	
 	public RaptorResultMatrix() {
-		matrix = new HashMap<String, Map<String, RaptorResult>>();
+		matrix = Collections.synchronizedMap(new HashMap<String, Map<String, RaptorResult>>());
+	}
+	
+	public void putRow(String stopId, Map<String, RaptorResult> row) {
+	    matrix.put(stopId, row);
+	}
+	
+	public Map<String, RaptorResult> getRow(String stopId) {
+        return matrix.get(stopId);
 	}
 	
 	public RaptorResult getResult(String origin, String destination) {

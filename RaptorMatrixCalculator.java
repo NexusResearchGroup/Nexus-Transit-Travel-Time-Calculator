@@ -1,6 +1,6 @@
 import java.io.*;
 import java.util.*;
-
+import java.util.concurrent.*;
 public class RaptorMatrixCalculator {
 	private GTFSData gtfsData;
 	private RaptorResultMatrix resultMatrix;
@@ -31,123 +31,32 @@ public class RaptorMatrixCalculator {
 	}
 	
 	private void calculateResults(int startTime, int endTime, int maxTrips, int maxTransferTime) {
-		//for (GTFSStop stop : gtfsData.getStops()) {
-		//	calculateResultsForStop(stop, startTime, endTime, maxTrips, maxTransferTime);
-		//}
-		
-		long totalCalcTime = 0;
-		long startCalc;
-		long endCalc;
 		int numStops = 100;
 		int completedStops = 0;
-		
-		
-		Set<String> stopIds = gtfsData.getStopIds();
+		long totalCalcTime = 0;
+		long startCalc;
+		List<RaptorRowCalculator> rowCalculators = new ArrayList<RaptorRowCalculator>();
 		Random rng = new Random();
+		ExecutorService es = Executors.newFixedThreadPool(3);
 		
+		startCalc = System.currentTimeMillis();
 		while (completedStops < numStops) {
-            String randomStopId = ((Integer) rng.nextInt(60000)).toString();
-            if (gtfsData.getStopIds().contains(randomStopId)) {
-                startCalc = System.currentTimeMillis();
-                calculateResultsForStop(gtfsData.getStopForId(randomStopId), startTime, endTime, maxTrips, maxTransferTime);
-                endCalc = System.currentTimeMillis();
-                totalCalcTime += (endCalc - startCalc);
-                completedStops++;
-            }
-        }
-		
-		System.out.println("Total calculation time for " + numStops + " stops: " + (totalCalcTime / 1000.0) + " seconds");
-	}
-	
-	private void processTripFromStop(GTFSTrip trip, GTFSStop currentStop, GTFSStop originStop, Set<GTFSStop> markedStops) {
-		//System.out.println(">> Route " + trip.getRoute().getId());
-
-		GTFSStop futureStop;
-		String currentStopId = currentStop.getId();
-		String originStopId = originStop.getId();
-		RaptorResult currentBest = resultMatrix.getResult(originStopId, currentStopId);
-		RaptorResult futureBest;
-		int futureArrivalTime;
-		int futureActiveTime;
-		int departureTime = trip.stopTimeAtStop(currentStop).getTime();
-		
-		for (GTFSStopTime futureStopTime : trip.stopTimesAfter(departureTime)) {
-			futureStop = futureStopTime.getStop();
-			futureBest = resultMatrix.getResult(originStopId, futureStop.getId());
-			futureArrivalTime = futureStopTime.getTime();
-			futureActiveTime = currentBest.activeTime + (futureArrivalTime - departureTime);
-			
-			if (futureActiveTime < futureBest.activeTime) {
-				//System.out.println(">>> Stop " + futureStop.getId() + ": improved time from " + futureBest.activeTime + " to " + futureActiveTime + " by trip " + trip.getId() + " from stop " + currentStop.getId());
-				futureBest.arrivalTime = futureArrivalTime;
-				futureBest.activeTime = futureActiveTime;
-				markedStops.add(futureStop);
-			}
+		    String randomStopId = ((Integer) rng.nextInt(60000)).toString();
+		    if (gtfsData.getStopIds().contains(randomStopId)) {
+		        Future f = es.submit(new RaptorRowCalculator(gtfsData, gtfsData.getStopForId(randomStopId), startTime, endTime, maxTrips, maxTransferTime, resultMatrix));
+		        completedStops++;
+		    }
 		}
-	}
-	
-	private void processTransfersFromStop(GTFSStop currentStop, GTFSStop originStop, Set<GTFSStop> markedStops) {
-		String currentStopId = currentStop.getId();
-		String originStopId = originStop.getId();
-		RaptorResult currentBest = resultMatrix.getResult(originStopId, currentStopId);
-		RaptorResult transferBest;
-		int transferArrivalTime;
-		int transferActiveTime;
-		int transferAccessTime;
+		es.shutdown();
 		
-		for (GTFSStop transferStop : currentStop.getTransferStops()) {
-			transferBest = resultMatrix.getResult(originStopId, transferStop.getId());
-			transferAccessTime = currentStop.getAccessTimeForTransferStop(transferStop);
-			transferArrivalTime = currentBest.arrivalTime + transferAccessTime;
-			transferActiveTime = currentBest.activeTime + transferAccessTime;
-			
-			if (transferActiveTime < transferBest.activeTime) {
-				//System.out.println(">>> Stop " + transferStop.getId() + ": improved time from " + transferBest.activeTime + " to " + transferActiveTime + " by walking from stop " + currentStop.getId());
-				transferBest.arrivalTime = transferArrivalTime;
-				transferBest.activeTime = transferActiveTime;
-				
-				markedStops.add(transferStop);
-			}
+		while (!es.isTerminated()) {
+		    try {
+		        Thread.sleep(1000);
+		    } catch (Exception e) {
+		        System.err.println(e.getMessage());
+		    }
 		}
-	}
-	
-	private void calculateResultsForStop(GTFSStop originStop, int startTime, int endTime, int maxTrips, int maxTransferTime) {
-		System.out.println("Stop " + originStop.getId());
-		HashSet<GTFSStop> nextRoundMarkedStops = new HashSet<GTFSStop>();
-		nextRoundMarkedStops.add(originStop);
-		HashSet<GTFSStop> thisRoundMarkedStops;
-		String originStopId = originStop.getId();
-		resultMatrix.updateResult(originStopId, originStopId, startTime, 0);
-		RaptorResult currentBest;
-		int lastAllowedBoardingTime;
-		
-		// for the origin stop, there is no time limit on which trips can be taken
-		for (int k=1; k<=maxTrips; k++) {
-			//System.out.println("> Trip number " + k);
-			thisRoundMarkedStops = new HashSet<GTFSStop>(nextRoundMarkedStops);
-			nextRoundMarkedStops = new HashSet<GTFSStop>();
-			
-			for (GTFSStop currentStop : thisRoundMarkedStops) {
-				
-				currentBest = resultMatrix.getResult(originStopId, currentStop.getId());
-				
-				if (k == 1) {
-					lastAllowedBoardingTime = endTime;
-				} else {
-					lastAllowedBoardingTime = currentBest.arrivalTime + maxTransferTime;
-				}
-				
-				// process trips available from the current stop
-				for (GTFSStopTime nextStopTime : currentStop.stopTimesBetween(currentBest.arrivalTime, lastAllowedBoardingTime)) {
-					processTripFromStop(nextStopTime.getTrip(), currentStop, originStop, nextRoundMarkedStops);
-				}	
-				
-				// process transfers available from the current stop
-				HashSet<GTFSStop> possibleTransferStops = new HashSet<GTFSStop>(nextRoundMarkedStops);
-				for (GTFSStop possibleTransferStop : possibleTransferStops) {
-					processTransfersFromStop(possibleTransferStop, originStop, nextRoundMarkedStops);
-				}
-			}
-		}
+        totalCalcTime = System.currentTimeMillis() - startCalc;
+        System.out.println("Total calculation time for " + numStops + " stops: " + (totalCalcTime / 1000.0) + " seconds");
 	}
 }
