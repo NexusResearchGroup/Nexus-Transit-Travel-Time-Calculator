@@ -11,7 +11,7 @@ public class RaptorMatrixCalculator {
 	}
 
 	public static void main (String[] args) {
-		// Usage: GTFSData google_transit.zip points.csv MAR12-Multi-Weekday-01 25200 32400 2 900 results.csv
+		// Usage: GTFSData google_transit.zip points.csv SEP09-Multi-Weekday-01 25200 32400 2 900 results.csv
         String gtfsFileName = args[0];
         String pointsFileName = args[1];
         String serviceId = args[2];
@@ -35,11 +35,28 @@ public class RaptorMatrixCalculator {
 		//	calculateResultsForStop(stop, startTime, endTime, maxTrips, maxTransferTime);
 		//}
 		
+		long totalCalcTime = 0;
+		long startCalc;
+		long endCalc;
+		int numStops = 100;
+		int completedStops = 0;
+		
+		
 		Set<String> stopIds = gtfsData.getStopIds();
-		int randomStopId = Random.nextInt(60000);
+		Random rng = new Random();
 		
-		calculateResultsForStop(gtfsData.getStopForId("1318"), startTime, endTime, maxTrips, maxTransferTime);
+		while (completedStops < numStops) {
+            String randomStopId = ((Integer) rng.nextInt(60000)).toString();
+            if (gtfsData.getStopIds().contains(randomStopId)) {
+                startCalc = System.currentTimeMillis();
+                calculateResultsForStop(gtfsData.getStopForId(randomStopId), startTime, endTime, maxTrips, maxTransferTime);
+                endCalc = System.currentTimeMillis();
+                totalCalcTime += (endCalc - startCalc);
+                completedStops++;
+            }
+        }
 		
+		System.out.println("Total calculation time for " + numStops + " stops: " + (totalCalcTime / 1000.0) + " seconds");
 	}
 	
 	private void processTripFromStop(GTFSTrip trip, GTFSStop currentStop, GTFSStop originStop, Set<GTFSStop> markedStops) {
@@ -95,7 +112,7 @@ public class RaptorMatrixCalculator {
 	}
 	
 	private void calculateResultsForStop(GTFSStop originStop, int startTime, int endTime, int maxTrips, int maxTransferTime) {
-		//System.out.println("Stop " + originStop.getId());
+		System.out.println("Stop " + originStop.getId());
 		HashSet<GTFSStop> nextRoundMarkedStops = new HashSet<GTFSStop>();
 		nextRoundMarkedStops.add(originStop);
 		HashSet<GTFSStop> thisRoundMarkedStops;
