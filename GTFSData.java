@@ -8,10 +8,10 @@ public class GTFSData {
     private static final String stopTimesFileName = "stop_times.txt";
     private static final String stopsFileName = "stops.txt";
     private static final String routesFileName = "routes.txt";
-    private static final double transferThreshold = 400.0; // meters
-    private static final double stopJoinThreshold = 8000.0;; // meters
-    private static final double walkSpeed = 5000.0; // m/h
-    private static final double circuityAdjustment = 1.2;
+    public static final double transferThreshold = 400.0; // meters
+    public static final double stopJoinThreshold = 2000.0; // meters
+    public static final double walkSpeed = 5000.0; // m/h
+    public static final double circuityAdjustment = 1.2;
     
     private String selectedServiceId = "";
 	private Map<String, GTFSStop> stops = null;
@@ -22,6 +22,8 @@ public class GTFSData {
 
 	public GTFSData(String gtfsFileName, String pointsFileName, String regionsFileName, String serviceId) {
         selectedServiceId = serviceId;
+        
+        long startLoadTime = System.currentTimeMillis();
         
         try {
             ZipFile zipFile = new ZipFile(gtfsFileName);
@@ -41,6 +43,9 @@ public class GTFSData {
         } catch (Exception e) {
             System.out.println ("exception:" + e);
         }
+        
+        long elapsedTime = System.currentTimeMillis() - startLoadTime;
+        System.out.println("Total loading time: " + elapsedTime/1000 + " seconds");
 	}
 	
 //     public static void main (String[] args) {
@@ -201,9 +206,9 @@ public class GTFSData {
 	    addTripStopTime(tripId, stopId, time);
 	}
 	
-	private void addODPoint(String pointId, String containerId, String lat, String lon) throws Exception {
+	private void addODPoint(String pointId, String regionId, String lat, String lon) throws Exception {
         GeoPoint location = new GeoPoint(Double.parseDouble(lat), Double.parseDouble(lon));
-        addODPoint(pointId, containerId, location);
+        addODPoint(pointId, regionId, location);
 	}
 	
 	private void addODPoint(String pointId, String regionId, GeoPoint location) throws Exception {
@@ -218,10 +223,11 @@ public class GTFSData {
 	        points.put(pointId, point);
 	        for (GTFSStop stop : stops.values()) {
 	            stopPointDistance = Haversine.distanceBetween(stop.getLocation(), point.getLocation()) * circuityAdjustment;
-	            if (stopPointDistance <= stopJoinThreshold) {
+//	            if (stopPointDistance <= stopJoinThreshold) {
 	                accessTime = (int)Math.round(stopPointDistance / walkSpeed * 3600);
+	                //System.out.println("  Point " + pointId + " is " + accessTime + " seconds away from stop " + stop.getId());
 	                point.addStop(stop, accessTime);
-	            }
+//	            }
 	        }
 	    }
 	    
@@ -278,8 +284,9 @@ public class GTFSData {
 	    String[] row;
 	    BufferedReader stopReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, stopsFileName);
 	    
-	    if (stops == null) { stops = new HashMap<String, GTFSStop>(); }
+	    if (stops == null) { stops = Collections.synchronizedMap(new HashMap<String, GTFSStop>()); }
 	    
+	    long startTime = System.currentTimeMillis();
 	    try {
 	        //swallow the csv headers
 	        stopReader.readLine();
@@ -296,7 +303,9 @@ public class GTFSData {
             System.err.println("Error reading stops; aborting");
             return;
         }
-
+	    long time = System.currentTimeMillis() - startTime;
+	    int nAdded = stops.values().size();
+	    System.out.println("  Loaded " + nAdded + " stops in " + time + " msec ("+ (double)time/(double)nAdded + " msec per stop)");
 	}
 	
 	private void loadRoutes(ZipFile zipFile) {
@@ -304,8 +313,9 @@ public class GTFSData {
 	    String[] row;
 	    BufferedReader routeReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, routesFileName);
 	    
-	    if (routes == null) { routes = new HashMap<String, GTFSRoute>(); }
-	    
+	    if (routes == null) { routes = Collections.synchronizedMap(new HashMap<String, GTFSRoute>()); }
+
+	    long startTime = System.currentTimeMillis();	    
 	    try {
 	        //swallow the csv headers
 	        routeReader.readLine();
@@ -322,7 +332,9 @@ public class GTFSData {
             System.err.println("Error reading routes; aborting");
             return;
         }
-
+	    long time = System.currentTimeMillis() - startTime;
+	    int nAdded = routes.values().size();
+	    System.out.println("  Loaded " + nAdded + " regions in " + time + " msec ("+ (double)time/(double)nAdded + " msec per route)");
 	}
 	
 	private void loadTrips(ZipFile zipFile) {
@@ -330,8 +342,9 @@ public class GTFSData {
 	    String[] row;
 	    BufferedReader tripReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, tripsFileName);
 	    
-	    if (trips == null) { trips = new HashMap<String, GTFSTrip>(); }
+	    if (trips == null) { trips = Collections.synchronizedMap(new HashMap<String, GTFSTrip>()); }
 	    
+	    long startTime = System.currentTimeMillis();
 	    try {
 	        //swallow the csv headers
 	        tripReader.readLine();
@@ -350,13 +363,18 @@ public class GTFSData {
             System.err.println("Error reading routes; aborting");
             return;
         }
+        long time = System.currentTimeMillis() - startTime;
+        int nAdded = trips.values().size();
+	    System.out.println("  Loaded " + nAdded + " trips in " + time + " msec ("+ (double)time/(double)nAdded + " msec per trip)");
 	}
 	
 	private void loadTripStopTimes(ZipFile zipFile) {
 	    System.out.println("Loading stop times...");
 	    String[] row;
 	    BufferedReader stopTimeReader = GTFSData.bufferedReaderFromZipFileEntry(zipFile, stopTimesFileName);
+	    int nAdded = 0;
 	    
+	    long startTime = System.currentTimeMillis();
 	    try {
 	        //swallow the csv headers
 	        stopTimeReader.readLine();
@@ -365,9 +383,11 @@ public class GTFSData {
                 if (trips.containsKey(row[0])) { // only process trips for the selected service Id
                     try {
                         addTripStopTime(row[0], row[3], row[2]);
+                        nAdded++;
                     }
                     catch (Exception e) {
                         System.err.println(e.getMessage());
+                        nAdded--;
                     }
                 }
             }
@@ -375,6 +395,9 @@ public class GTFSData {
             System.err.println("Error reading routes; aborting");
             return;
         }
+	    long time = System.currentTimeMillis() - startTime;
+        System.out.println("  Loaded " + nAdded + " stoptimes in " + time + " msec ("+ (double)time/(double)nAdded + " msec per stoptime)");
+
 	}
 	
 	private void loadODRegions(File regionsFile) {
@@ -382,8 +405,9 @@ public class GTFSData {
 	    String[] row;
 	    BufferedReader regionReader;
 	    
-	    if (regions == null) {regions = new HashMap<String, ODRegion>(); }
+	    if (regions == null) {regions = Collections.synchronizedMap(new HashMap<String, ODRegion>()); }
 	    
+	    long startTime = System.currentTimeMillis();
 	    try {
 	        regionReader = new BufferedReader(new FileReader(regionsFile));
 	    } catch (FileNotFoundException e) {
@@ -406,6 +430,9 @@ public class GTFSData {
 	        System.err.println("Error reading regions; aborting");
 	        return;
 	    }
+	    long time = System.currentTimeMillis() - startTime;
+	    int nAdded = regions.values().size();
+	    System.out.println("  Loaded " + nAdded + " regions in " + time + " msec ("+ (double)time/(double)nAdded + " msec per region)");
 	}
 	
 	private void loadODPoints(File pointsFile) {
@@ -413,9 +440,9 @@ public class GTFSData {
 	    String[] row;
 	    BufferedReader pointReader;
 
-	    if (points == null) { points = new HashMap<String, ODPoint>(); }
+	    if (points == null) { points = Collections.synchronizedMap(new HashMap<String, ODPoint>()); }
 
-
+	    long startTime = System.currentTimeMillis();
 	    try {
 	        pointReader = new BufferedReader(new FileReader(pointsFile));
 	    } catch (FileNotFoundException e) {
@@ -432,13 +459,16 @@ public class GTFSData {
                     addODPoint(row[0], row[1], row[2], row[3]);
                 }
                 catch (Exception e) {
-                    System.err.println("Error loading point " + row[0]);
+                    System.err.println(e.getMessage());
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error reading points; aborting");
+            System.err.println(e);
             return;
         }
+	    long time = System.currentTimeMillis() - startTime;
+	    int nAdded = points.values().size();
+	    System.out.println("  Loaded " + nAdded + " points in " + time + " msec ("+ (double)time/(double)nAdded + " msec per point)");
         
         connectOrphanStops();
 	}
@@ -493,6 +523,14 @@ public class GTFSData {
 	
 	public GTFSStop getStopForId(String id) {
 		return stops.get(id);
+	}
+	
+	public ODPoint getPointForId(String id) {
+	    return points.get(id);
+	}
+	
+	public ODRegion getRegionForId(String id) {
+	    return regions.get(id);
 	}
     
 }

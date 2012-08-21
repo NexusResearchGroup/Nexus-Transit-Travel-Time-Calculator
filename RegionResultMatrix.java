@@ -48,31 +48,35 @@ public class RegionResultMatrix {
         row.put(destination, value);
     }
     
-//     	public void writeResultsToCSVFile(String fileName){
-// 		String c = ",";
-// 		System.out.println("Writing results...");
-// 		BufferedWriter writer;
-// 		try {
-// 			writer = new BufferedWriter(new FileWriter(fileName));
-// 			writer.write("ostop,dstop,mins");
-// 			writer.newLine();
-// 			
-// 			List<String> originList = new ArrayList<String>(matrix.keySet());
-// 			Collections.sort(originList);
-// 			for (String originId : originList) {
-// 				Map<String, RaptorResult> row = matrix.get(originId);
-// 				List<String> destinationList = new ArrayList<String>(row.keySet());
-// 				Collections.sort(destinationList);
-// 				for (String destinationId : destinationList) {
-// 					double activeMinutes = row.get(destinationId).activeTime / 60.0;
-// 					writer.write(originId + c + destinationId + c + activeMinutes);
-// 					writer.newLine();
-// 				}
-// 			}
-// 			
-// 			writer.close();
-// 		} catch (Exception e) {
-// 			System.err.println(e.getMessage());
-// 		}
-// 	}
+    public void writeResultsToCSVFile(String fileName) {
+		String c = ",";
+		String originId;
+		String destinationId;
+		System.out.println("Writing results...");
+		BufferedWriter writer;
+		try {
+			writer = new BufferedWriter(new FileWriter(fileName));
+			writer.write("ostop,dstop,mins");
+			writer.newLine();
+			
+			List<ODRegion> originList = new ArrayList<ODRegion>(matrix.keySet());
+			Collections.sort(originList);
+			for (ODRegion origin : originList) {
+			    originId = origin.getId();
+				Map<ODRegion, Integer> row = matrix.get(origin);
+				List<ODRegion> destinationList = new ArrayList<ODRegion>(row.keySet());
+				Collections.sort(destinationList);
+				for (ODRegion destination : destinationList) {
+				    destinationId = destination.getId();
+					double activeMinutes = row.get(destinationId) / 60.0;
+					writer.write(originId + c + destinationId + c + activeMinutes);
+					writer.newLine();
+				}
+			}
+			
+			writer.close();
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+	}
 }

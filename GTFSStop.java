@@ -28,7 +28,6 @@ public class GTFSStop {
     }
     
     public void addRoute(GTFSRoute route) {
-        //System.out.println("Adding route " + route.name + " to stop " + id);
         routes.add(route);
     }
     
@@ -42,6 +41,7 @@ public class GTFSStop {
     
     public void addPoint(ODPoint point, int accessTime) {
         pointAccessTimes.put(point, accessTime);
+        //System.out.println("  Stop " + id + ": added point " + point.getId());
     }
     
     public void removePoint(ODPoint point) {

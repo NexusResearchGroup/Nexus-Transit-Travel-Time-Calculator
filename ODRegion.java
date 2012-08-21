@@ -1,7 +1,7 @@
 import java.io.*;
 import java.util.*;
 
-public class ODRegion {
+public class ODRegion implements Comparable<ODRegion> {
     private final String id;
     private final GeoPoint location;
     private Set<ODPoint> points;
@@ -14,6 +14,7 @@ public class ODRegion {
     
     public void addPoint(ODPoint point) {
         points.add(point);
+//        System.out.println("  Region " + id + ": added point " + point.getId());
     }
     
     public Set<ODPoint> getPoints() {
@@ -26,5 +27,13 @@ public class ODRegion {
     
     public GeoPoint getLocation() {
         return location;
+    }
+    
+    public int compareTo(ODRegion that) {
+        return this.id.compareTo(that.id);
+    }
+    
+    public boolean equalTo(ODRegion that) {
+        return this.id.equals(that.id);
     }
 }

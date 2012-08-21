@@ -25,8 +25,8 @@ public class RaptorMatrixCalculator {
         String outputFileName = args[8];
         
         RaptorMatrixCalculator r = new RaptorMatrixCalculator(gtfsFileName, pointsFileName, regionsFileName, serviceId);
-        r.calculateStopMatrix(startTime, endTime, maxTrips, maxTransferTime);
-        //r.calculateRegionMatrix();
+        //r.calculateStopMatrix(startTime, endTime, maxTrips, maxTransferTime);
+        r.calculateRegionMatrix();
 	}
 	
 	public RaptorResultMatrix getStopMatrix() {
@@ -38,23 +38,31 @@ public class RaptorMatrixCalculator {
 	}
 	
 	public void calculateRegionMatrix() {
-	    Collection<ODRegion> regions = gtfsData.getRegions();
-	    ExecutorService es = Executors.newFixedThreadPool(3);
+	    //Collection<ODRegion> regions = gtfsData.getRegions();
+	    Collection<ODRegion> regions = new HashSet<ODRegion>();
+	    regions.add(gtfsData.getRegionForId("100"));
+	    ExecutorService es = Executors.newFixedThreadPool(1);
 	    
-	    for (ODRegion region : regions) {
-	        Future f = es.submit(new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix);
-	    }
-	    es.shutdown();
+	    RegionRowCalculator rrc = new RegionRowCalculator(gtfsData, gtfsData.getRegionForId("100"), stopMatrix, regionMatrix);
+	    rrc.run();
 	    
-	    while (!es.isTerminated()) {
-	        try {
-	            Thread.sleep(1000);
-	        } catch (Exception e) {
-	            System.err.println(e.getMessage());
-	        }	            
-	    }
+// 	    for (ODRegion region : regions) {
+// 	        Future f = es.submit(new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix));
+// 	        System.out.println("Submitted task");
+// 	    }
+// 	    System.out.println("Calling shutdown");
+// 	    es.shutdown();
+// 	    
+// 	    while (!es.isTerminated()) {
+// 	        System.out.println("Waiting for shutdown");
+// 	        try {
+// 	            Thread.sleep(1000);
+// 	        } catch (Exception e) {
+// 	            System.err.println(e.getMessage());
+// 	        }	            
+// 	    }
 	}
-		
+	
 	public void calculateStopMatrix(int startTime, int endTime, int maxTrips, int maxTransferTime) {
 		int numStops = 100;
 		int completedStops = 0;
