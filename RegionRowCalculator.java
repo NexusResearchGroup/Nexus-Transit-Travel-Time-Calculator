@@ -42,6 +42,8 @@ public class RegionRowCalculator implements Runnable {
         int averageTime;
         int currentTime;
         
+        calculateWalkingTimes();
+        
         //System.out.println("I see " + dRegions.size() + " destination regions");
         for (ODRegion dRegion : dRegions) {
             //System.out.println("  Calculating time to region " + dRegion.getId());
@@ -88,6 +90,8 @@ public class RegionRowCalculator implements Runnable {
         long numPairs;
         int averageTime;
         int currentTime;
+        
+        calculateWalkingTimes();
         
         //System.out.println("I see " + dRegions.size() + " destination regions");
         for (ODRegion dRegion : dRegions) {
