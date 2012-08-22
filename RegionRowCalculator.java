@@ -40,10 +40,8 @@ public class RegionRowCalculator implements Runnable {
         long totalTime;
         long numPairs;
         int averageTime;
-        int currentTime;
-        
-        calculateWalkingTimes();
-        
+        int finalTime;
+                
         //System.out.println("I see " + dRegions.size() + " destination regions");
         for (ODRegion dRegion : dRegions) {
             //System.out.println("  Calculating time to region " + dRegion.getId());
@@ -126,8 +124,7 @@ public class RegionRowCalculator implements Runnable {
     
     private void calculateWalkingTimes() {
         for (ODRegion dRegion : gtfsData.getRegions()) {
-            double distance = Haversine.distanceBetween(originRegion.getLocation(), dRegion.getLocation()) * GTFSData.circuityAdjustment;
-            int walkTime = (int)Math.round(distance / GTFSData.walkSpeed * 3600);
+            int walkTime = walkingTimeBetweenRegions(originRegion, dRegion);
             putResult(dRegion, walkTime);
         }
     }
@@ -161,6 +158,11 @@ public class RegionRowCalculator implements Runnable {
         }
         //System.out.println("      Best time is " + minimumTime + " seconds");
         return minimumTime;
+    }
+    
+    private int walkingTimeBetweenRegions(ODRegion oRegion, ODRegion dRegion) {
+        double distance = Haversine.distanceBetween(oRegion.getLocation(), dRegion.getLocation()) * GTFSData.circuityAdjustment;
+        return (int) Math.round(distance / GTFSData.walkSpeed * 3600);
     }
     
     private int getResult(ODRegion region) {
