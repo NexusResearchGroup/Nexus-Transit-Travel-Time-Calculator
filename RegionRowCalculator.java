@@ -35,7 +35,7 @@ public class RegionRowCalculator implements Runnable {
     
     public void calculateResultsToFile() {
 		String formattedValue;
-    	System.out.println("Calculating results for region " + originRegion.getId());
+    	//System.out.println("Calculating results for region " + originRegion.getId());
         Collection<ODPoint> dPoints;
         long totalTime;
         long numPairs;
@@ -145,7 +145,7 @@ public class RegionRowCalculator implements Runnable {
             for (GTFSStop dStop : dStops) {
                 //System.out.println("          and destination stop " + dStop.getId());
                 egressTime = dStop.getAccessTimeForPoint(dPoint);
-                transitTime = stopMatrix.getResult(oStop.getId(), dStop.getId()).activeTime;
+                transitTime = stopMatrix.getResult(oStop, dStop).activeTime;
                 if (transitTime == Integer.MAX_VALUE) {
                     totalTime = transitTime;
                 } else {

@@ -3,26 +3,26 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class RaptorResultMatrix {
-	private Map<String, Map<String, RaptorResult>> matrix;
+	private Map<GTFSStop, Map<GTFSStop, RaptorResult>> matrix;
 	
 	public RaptorResultMatrix() {
-		matrix = Collections.synchronizedMap(new HashMap<String, Map<String, RaptorResult>>());
+		matrix = Collections.synchronizedMap(new HashMap<GTFSStop, Map<GTFSStop, RaptorResult>>());
 	}
 	
-	public void putRow(String stopId, Map<String, RaptorResult> row) {
-	    matrix.put(stopId, row);
+	public void putRow(GTFSStop stop, Map<GTFSStop, RaptorResult> row) {
+	    matrix.put(stop, row);
 	}
 	
-	public Map<String, RaptorResult> getRow(String stopId) {
-        return matrix.get(stopId);
+	public Map<GTFSStop, RaptorResult> getRow(GTFSStop stop) {
+        return matrix.get(stop);
 	}
 	
-	public RaptorResult getResult(String origin, String destination) {
+	public RaptorResult getResult(GTFSStop origin, GTFSStop destination) {
 		if (!matrix.containsKey(origin)) {
 			return RaptorResult.EMPTY_RESULT();
 		}
 		
-		Map<String, RaptorResult> row = matrix.get(origin);
+		Map<GTFSStop, RaptorResult> row = matrix.get(origin);
 		
 		if (!row.containsKey(destination)) {
 			return RaptorResult.EMPTY_RESULT();
@@ -31,14 +31,14 @@ public class RaptorResultMatrix {
 		return row.get(destination);
 	}
 	
-	public void updateResult(String origin, String destination, int arrivalTime, int activeTime) {
+	public void updateResult(GTFSStop origin, GTFSStop destination, int arrivalTime, int activeTime) {
 		synchronized (matrix) {
 			if (!matrix.containsKey(origin)) {
-				matrix.put(origin, new HashMap<String, RaptorResult>());
+				matrix.put(origin, new HashMap<GTFSStop, RaptorResult>());
 			}
 		}
 		
-		Map<String, RaptorResult> row = matrix.get(origin);
+		Map<GTFSStop, RaptorResult> row = matrix.get(origin);
 		
 		synchronized (row) {
 			if (!row.containsKey(destination)) {
@@ -52,7 +52,6 @@ public class RaptorResultMatrix {
 	}
 	
 	public void writeResultsToCSVFile(String fileName, GTFSData gtfsData){
-		String c = ",";
 		System.out.println("Writing results...");
 		BufferedWriter writer;
 		try {
@@ -60,15 +59,11 @@ public class RaptorResultMatrix {
 			writer.write("ostop,dstop,mins");
 			writer.newLine();
 			
-			List<String> originList = new ArrayList<String>(matrix.keySet());
-			Collections.sort(originList);
-			for (String originId : originList) {
-				Map<String, RaptorResult> row = matrix.get(originId);
-				List<String> destinationList = new ArrayList<String>(row.keySet());
-				Collections.sort(destinationList);
-				for (String destinationId : destinationList) {
-					double activeMinutes = row.get(destinationId).activeTime / 60.0;
-					writer.write(originId + c + destinationId + c + activeMinutes);
+			for (GTFSStop origin : matrix.keySet()) {
+				Map<GTFSStop, RaptorResult> row = matrix.get(origin);
+				for (GTFSStop destination : row.keySet()) {
+					double activeMinutes = row.get(destination).activeTime / 60.0;
+					writer.write(origin.getId() + "," + destination.getId() + "," + activeMinutes);
 					writer.newLine();
 				}
 			}

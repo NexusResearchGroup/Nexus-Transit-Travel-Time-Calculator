@@ -11,7 +11,7 @@ public class RaptorRowCalculator implements Runnable {
     private final int maxTrips;
     private final int maxTransferTime;
     private final RaptorResultMatrix resultMatrix;
-    private Map<String, RaptorResult> row;
+    private Map<GTFSStop, RaptorResult> row;
     
     public RaptorRowCalculator(GTFSData gtfsData, GTFSStop originStop, int startTime, int endTime, int maxTrips, int maxTransferTime, RaptorResultMatrix resultMatrix) {
         this.gtfsData = gtfsData;
@@ -22,20 +22,19 @@ public class RaptorRowCalculator implements Runnable {
         this.maxTrips = maxTrips;
         this.maxTransferTime = maxTransferTime;
         this.resultMatrix = resultMatrix;
-        this.row = new HashMap<String, RaptorResult>();
+        this.row = new HashMap<GTFSStop, RaptorResult>();
     }
     
     public void run() {
         calculateResults();
-        resultMatrix.putRow(originStopId, row);
+        resultMatrix.putRow(originStop, row);
     }
     
     private void processTripFromStop(GTFSTrip trip, GTFSStop currentStop, Set<GTFSStop> markedStops) {
 		//System.out.println(">> Route " + trip.getRoute().getId());
 
 		GTFSStop futureStop;
-		String currentStopId = currentStop.getId();
-		RaptorResult currentBest = getResult(currentStopId);
+		RaptorResult currentBest = getResult(currentStop);
 		RaptorResult futureBest;
 		int futureArrivalTime;
 		int futureActiveTime;
@@ -43,7 +42,7 @@ public class RaptorRowCalculator implements Runnable {
 		
 		for (GTFSStopTime futureStopTime : trip.stopTimesAfter(departureTime)) {
 			futureStop = futureStopTime.getStop();
-			futureBest = getResult(futureStop.getId());
+			futureBest = getResult(futureStop);
 			futureArrivalTime = futureStopTime.getTime();
 			futureActiveTime = currentBest.activeTime + (futureArrivalTime - departureTime);
 			
@@ -57,15 +56,14 @@ public class RaptorRowCalculator implements Runnable {
 	}
 	
 	private void processTransfersFromStop(GTFSStop currentStop, Set<GTFSStop> markedStops) {
-		String currentStopId = currentStop.getId();
-		RaptorResult currentBest = getResult(currentStopId);
+		RaptorResult currentBest = getResult(currentStop);
 		RaptorResult transferBest;
 		int transferArrivalTime;
 		int transferActiveTime;
 		int transferAccessTime;
 		
 		for (GTFSStop transferStop : currentStop.getTransferStops()) {
-			transferBest = getResult(transferStop.getId());
+			transferBest = getResult(transferStop);
 			transferAccessTime = currentStop.getAccessTimeForTransferStop(transferStop);
 			transferArrivalTime = currentBest.arrivalTime + transferAccessTime;
 			transferActiveTime = currentBest.activeTime + transferAccessTime;
@@ -85,7 +83,7 @@ public class RaptorRowCalculator implements Runnable {
 		HashSet<GTFSStop> nextRoundMarkedStops = new HashSet<GTFSStop>();
 		nextRoundMarkedStops.add(originStop);
 		HashSet<GTFSStop> thisRoundMarkedStops;
-		updateResult(originStopId, startTime, 0);
+		updateResult(originStop, startTime, 0);
 		RaptorResult currentBest;
 		int lastAllowedBoardingTime;
 		
@@ -97,7 +95,7 @@ public class RaptorRowCalculator implements Runnable {
 			
 			for (GTFSStop currentStop : thisRoundMarkedStops) {
 				
-				currentBest = row.get(currentStop.getId());
+				currentBest = getResult(currentStop);
 				
 				if (k == 1) {
 					lastAllowedBoardingTime = endTime;
@@ -119,18 +117,18 @@ public class RaptorRowCalculator implements Runnable {
 		}
 	}
 	
-	private RaptorResult getResult(String stopId) {
-	    if (!row.containsKey(stopId)) {
-	        row.put(stopId, new RaptorResult());    
+	private RaptorResult getResult(GTFSStop stop) {
+	    if (!row.containsKey(stop)) {
+	        row.put(stop, new RaptorResult());    
 	    }
-	    return row.get(stopId);	    
+	    return row.get(stop);	    
 	}
 	
-	private void updateResult(String stopId, int arrivalTime, int activeTime){
-	    if (!row.containsKey(stopId)) {
-	        row.put(stopId, new RaptorResult());
+	private void updateResult(GTFSStop stop, int arrivalTime, int activeTime){
+	    if (!row.containsKey(stop)) {
+	        row.put(stop, new RaptorResult());
 	    }
-	    RaptorResult result = row.get(stopId);
+	    RaptorResult result = row.get(stop);
 	    result.arrivalTime = arrivalTime;
 	    result.activeTime = activeTime;
 	}
