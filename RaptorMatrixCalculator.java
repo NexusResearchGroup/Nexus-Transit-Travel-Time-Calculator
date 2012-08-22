@@ -77,7 +77,7 @@ public class RaptorMatrixCalculator {
 	        }	            
 	    }
 	    totalCalcTime = System.currentTimeMillis() - startCalc;
-        System.out.println("Total calculation time for " + regions.size() + " regions: " + (totalCalcTime / 1000.0) + " seconds");
+        System.out.println("  Total calculation time for " + regions.size() + " regions: " + (totalCalcTime / 1000.0) + " seconds");
 			
 		try {
 			writer.close();
@@ -141,6 +141,6 @@ public class RaptorMatrixCalculator {
 		    }
 		}
         totalCalcTime = System.currentTimeMillis() - startCalc;
-        System.out.println("Total calculation time for " + gtfsData.getStops().size() + " stops: " + (totalCalcTime / 1000.0) + " seconds");
+        System.out.println("  Total calculation time for " + gtfsData.getStops().size() + " stops: " + (totalCalcTime / 1000.0) + " seconds");
 	}
 }
