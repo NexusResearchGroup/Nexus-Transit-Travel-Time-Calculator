@@ -1,5 +1,5 @@
 public class RaptorResult {
-	private static final RaptorResult emptyResult;
+	private static RaptorResult emptyResult;
 	public int arrivalTime;
 	public int activeTime;
 	
