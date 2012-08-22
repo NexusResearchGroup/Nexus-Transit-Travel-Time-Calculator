@@ -117,7 +117,10 @@ public class RegionRowCalculator implements Runnable {
                 //System.out.println( "    Average time is " + averageTime + " seconds");
             }
 
-			putResult(dRegion, averageTime);
+			// does this improve on the walking time?
+			if (averageTime < getResult(dRegion)) {
+				putResult(dRegion, averageTime);
+			}
         }
     }
     
@@ -125,7 +128,7 @@ public class RegionRowCalculator implements Runnable {
         for (ODRegion dRegion : gtfsData.getRegions()) {
             double distance = Haversine.distanceBetween(originRegion.getLocation(), dRegion.getLocation()) * GTFSData.circuityAdjustment;
             int walkTime = (int)Math.round(distance / GTFSData.walkSpeed * 3600);
-            row.put(dRegion, walkTime);
+            putResult(dRegion, walkTime);
         }
     }
     
