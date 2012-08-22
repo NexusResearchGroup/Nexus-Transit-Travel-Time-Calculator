@@ -40,7 +40,6 @@ public class RegionRowCalculator implements Runnable {
         long totalTime;
         long numPairs;
         int averageTime;
-        int finalTime;
                 
         //System.out.println("I see " + dRegions.size() + " destination regions");
         for (ODRegion dRegion : dRegions) {
@@ -130,7 +129,7 @@ public class RegionRowCalculator implements Runnable {
     }
     
     private int minimumTimeBetweenPoints(ODPoint oPoint, ODPoint dPoint) {
-        int minimumTime = Integer.MAX_VALUE;
+    	int minimumTime = Haversine.secondsBetween(oPoint.getLocation(), dPoint.getLocation(), GTFSData.walkSpeed) * GTFSData.circuityAdjustment;
         int accessTime;
         int egressTime;
         int totalTime;
