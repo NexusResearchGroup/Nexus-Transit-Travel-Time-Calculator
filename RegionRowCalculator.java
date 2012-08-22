@@ -1,41 +1,50 @@
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.text.DecimalFormat;
 
 public class RegionRowCalculator implements Runnable {
     private final GTFSData gtfsData;
-    private final ODRegion originRegion;
+    private ODRegion originRegion;
     private final RegionResultMatrix resultMatrix;
     private final RaptorResultMatrix stopMatrix;
     private Map<ODRegion, Integer> row;
+    private DecimalFormat formatter;
+    private Collection<ODRegion> dRegions;
+    private Collection<ODPoint> oPoints;
+    private BufferedWriter writer;
 
-    public RegionRowCalculator(GTFSData gtfsData, ODRegion originRegion, RaptorResultMatrix stopMatrix, RegionResultMatrix resultMatrix) {
+    public RegionRowCalculator(GTFSData gtfsData, ODRegion originRegion, RaptorResultMatrix stopMatrix, RegionResultMatrix resultMatrix, BufferedWriter writer) {
         this.gtfsData = gtfsData;
         this.originRegion = originRegion;
+        this.oPoints = originRegion.getPoints();
+        this.row = new HashMap<ODRegion, Integer>();
         this.resultMatrix = resultMatrix;
         this.stopMatrix = stopMatrix;
-        this.row = new HashMap<ODRegion, Integer>();
+        this.writer = writer;
+        this.formatter = new DecimalFormat();
+        formatter.setMaximumFractionDigits(2);
+        formatter.setGroupingUsed(false);
+        this.dRegions = gtfsData.getRegions();
     }
     
     public void run() {
-        calculateResults();
-        System.out.println("Back from calculating results");
-        resultMatrix.putRow(originRegion, row);
+        calculateResultsToFile();
+        //resultMatrix.putRow(originRegion, row);
     }
     
-    private void calculateResults() {
-        System.out.println("Calculating results for region " + originRegion.getId());
-        Collection<ODRegion> dRegions = gtfsData.getRegions();
-        Collection<ODPoint> oPoints = originRegion.getPoints();
+    public void calculateResultsToFile() {
+		String formattedValue;
+    	System.out.println("Calculating results for region " + originRegion.getId());
         Collection<ODPoint> dPoints;
         long totalTime;
         long numPairs;
         int averageTime;
         int currentTime;
         
-        System.out.println("I see " + dRegions.size() + " destination regions");
+        //System.out.println("I see " + dRegions.size() + " destination regions");
         for (ODRegion dRegion : dRegions) {
-            System.out.println("  Calculating time to region " + dRegion.getId());
+            //System.out.println("  Calculating time to region " + dRegion.getId());
             dPoints = dRegion.getPoints();
             totalTime = 0;
             numPairs = 0;
@@ -54,14 +63,57 @@ public class RegionRowCalculator implements Runnable {
                 averageTime = Integer.MAX_VALUE;
             } else {
                 averageTime = (int)Math.round(totalTime / numPairs);
-                System.out.println( "    Average time is " + averageTime + " seconds");
+                //System.out.println( "    Average time is " + averageTime + " seconds");
+            }
+			
+			formattedValue = formatter.format(averageTime / 60.0);
+			synchronized (writer) {
+				try {
+					writer.write("\"" + originRegion.getId() + "\"" + "," + "\"" + dRegion.getId() + "\"" + "," + formattedValue);
+					writer.newLine();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+        }
+        
+    }
+    
+    private void calculateResults() {
+        System.out.println("Calculating results for region " + originRegion.getId());
+        Collection<ODRegion> dRegions = gtfsData.getRegions();
+        Collection<ODPoint> oPoints = originRegion.getPoints();
+        Collection<ODPoint> dPoints;
+        long totalTime;
+        long numPairs;
+        int averageTime;
+        int currentTime;
+        
+        //System.out.println("I see " + dRegions.size() + " destination regions");
+        for (ODRegion dRegion : dRegions) {
+            //System.out.println("  Calculating time to region " + dRegion.getId());
+            dPoints = dRegion.getPoints();
+            totalTime = 0;
+            numPairs = 0;
+            
+            for (ODPoint oPoint : oPoints) {
+                //System.out.println("    Using origin point " + oPoint.getId());
+                for (ODPoint dPoint : dPoints) {
+                    //System.out.println("      and destination point " + dPoint.getId());
+                    numPairs++;
+                    totalTime += minimumTimeBetweenPoints(oPoint, dPoint);
+                }
+            }
+            
+            if (numPairs == 0) {
+                System.out.println("    No point pairs connect to region " + dRegion.getId());
+                averageTime = Integer.MAX_VALUE;
+            } else {
+                averageTime = (int)Math.round(totalTime / numPairs);
+                //System.out.println( "    Average time is " + averageTime + " seconds");
             }
 
-            currentTime = getResult(dRegion);
-
-            if (averageTime < currentTime) {
-                putResult(dRegion, averageTime);
-            }
+			putResult(dRegion, averageTime);
         }
     }
     

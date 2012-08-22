@@ -4,20 +4,14 @@ import java.util.*;
 public class ODPoint {
     private String id;
     private GTFSStop closestStop;
-    private int closestStopAccessTime;
     private GTFSStop secondClosestStop;
-    private int secondClosestStopAccessTime;
-    private Map<GTFSStop, Integer> backupStopAccessTimes;
+    private Map<GTFSStop, Integer> stopAccessTimes;
     private GeoPoint location;
     
     public ODPoint(String inputPointId, GeoPoint inputLocation) {
         id = inputPointId;
         location = inputLocation;
-        backupStopAccessTimes = new HashMap<GTFSStop, Integer>();
-        closestStopAccessTime = Integer.MAX_VALUE;
-        closestStop = null;
-        secondClosestStopAccessTime = Integer.MAX_VALUE;
-        secondClosestStop = null;
+        stopAccessTimes = new HashMap<GTFSStop, Integer>();
     }
     
     public GeoPoint getLocation() {
@@ -27,26 +21,44 @@ public class ODPoint {
     public String getId() { return id; }
     
     public void addStop(GTFSStop stop, int accessTime) {
-        if (accessTime < closestStopAccessTime) {
-            // new stop is now the closest stop
-            //System.out.println("  Point " + id + ": stop " + stop.getId() + " is new closest stop");
-            if (secondClosestStop != null) {
-                secondClosestStop.removePoint(this);
-            }
+    	if (closestStop == null) {
+    		// there is no closest stop, so use this one
+    		closestStop = stop;
+    		stopAccessTimes.put(closestStop, accessTime);
+    		stop.addPoint(this, accessTime);
+    	
+    	} else if (secondClosestStop == null) {
+    		// there is no second closest stop, so use this one
+    		secondClosestStop = stop;
+    		stopAccessTimes.put(secondClosestStop, accessTime);
+    		stop.addPoint(this, accessTime);
+    	
+    	} else if (accessTime < stopAccessTimes.get(closestStop)) {
+            // new stop replaces the closest stop
+            
+            // remove the old second closest stop
+            stopAccessTimes.remove(secondClosestStop);
+            secondClosestStop.removePoint(this);
+            
+            // make the old closest the second closest
             secondClosestStop = closestStop;
-            secondClosestStopAccessTime = closestStopAccessTime;
+
+            // make the new stop the closest
             closestStop = stop;
-            closestStopAccessTime = accessTime;
-            stop.addPoint(this, accessTime);
-        } else if (accessTime < secondClosestStopAccessTime) {
+            stopAccessTimes.put(closestStop, accessTime);
+            closestStop.addPoint(this, accessTime);
+            
+        } else if (accessTime < stopAccessTimes.get(secondClosestStop)) {
             // new stop is now the second closest stop
-            //System.out.println("  Point " + id + ": stop " + stop.getId() + " is new 2nd closest stop");
-            if (secondClosestStop != null) {
-                secondClosestStop.removePoint(this);
-            }
+            
+            // remove the old second closest stop
+            stopAccessTimes.remove(secondClosestStop);
+            secondClosestStop.removePoint(this);
+            
+            // make the new stop the second closest
             secondClosestStop = stop;
-            secondClosestStopAccessTime = accessTime;
-            stop.addPoint(this, accessTime);
+            stopAccessTimes.put(secondClosestStop, accessTime);
+            secondClosestStop.addPoint(this, accessTime);
         } else {
             // new stop is farther away than both current stops, ignore it
             return;
@@ -54,21 +66,15 @@ public class ODPoint {
     }
     
     public void addBackupStop(GTFSStop stop, int accessTime) {
-        backupStopAccessTimes.put(stop, accessTime);
+        stopAccessTimes.put(stop, accessTime);
         stop.addPoint(this, accessTime);
     }
     
     public Map<GTFSStop, Integer> getStopAccessTimes() {
-        Map<GTFSStop, Integer> map = new HashMap<GTFSStop, Integer>(backupStopAccessTimes);
-        map.put(closestStop, closestStopAccessTime);
-        map.put(secondClosestStop, secondClosestStopAccessTime);
-        return map;
+        return stopAccessTimes;
     }
     
     public Set<GTFSStop> getStops() {
-        Set<GTFSStop> stops = new HashSet<GTFSStop>(backupStopAccessTimes.keySet());
-        stops.add(closestStop);
-        stops.add(secondClosestStop);
-        return stops;
+        return stopAccessTimes.keySet();
     }
 }

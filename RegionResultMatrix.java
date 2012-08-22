@@ -1,5 +1,7 @@
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
+import java.text.DecimalFormat;
 
 public class RegionResultMatrix {
     private Map<ODRegion, Map<ODRegion, Integer>> matrix;
@@ -33,7 +35,9 @@ public class RegionResultMatrix {
         if (!matrix.containsKey(origin)) {
             return Integer.MAX_VALUE;
         }
+        
         Map<ODRegion, Integer> row = matrix.get(origin);
+        
         if (!row.containsKey(destination)) {
             return Integer.MAX_VALUE;
         }
@@ -48,35 +52,42 @@ public class RegionResultMatrix {
         row.put(destination, value);
     }
     
-    public void writeResultsToCSVFile(String fileName) {
+    public void writeResultsToCSVFile(String fileName, GTFSData gtfsData) {
 		String c = ",";
+		String q = "\"";
 		String originId;
 		String destinationId;
-		System.out.println("Writing results...");
+		System.out.println("Writing results to " + fileName);
 		BufferedWriter writer;
+		DecimalFormat formatter = new DecimalFormat();
+		formatter.setMaximumFractionDigits(2);
+		formatter.setGroupingUsed(false);
+		String formattedValue;
+		
 		try {
 			writer = new BufferedWriter(new FileWriter(fileName));
-			writer.write("ostop,dstop,mins");
+			//System.out.println("Writing headers...");
+			writer.write("\"otaz\",\"dtaz\",\"mins\"");
 			writer.newLine();
 			
-			List<ODRegion> originList = new ArrayList<ODRegion>(matrix.keySet());
-			Collections.sort(originList);
-			for (ODRegion origin : originList) {
+			List<ODRegion> regionList = new ArrayList<ODRegion>(gtfsData.getRegions());
+			Collections.sort(regionList);
+			//System.out.println("Writing table...");
+			for (ODRegion origin : regionList) {
+				//System.out.println("Writing result for origin " + origin.getId());
 			    originId = origin.getId();
-				Map<ODRegion, Integer> row = matrix.get(origin);
-				List<ODRegion> destinationList = new ArrayList<ODRegion>(row.keySet());
-				Collections.sort(destinationList);
-				for (ODRegion destination : destinationList) {
+				for (ODRegion destination : regionList) {
+					//System.out.println("Writing result for destination " + destination.getId());
 				    destinationId = destination.getId();
-					double activeMinutes = row.get(destinationId) / 60.0;
-					writer.write(originId + c + destinationId + c + activeMinutes);
+					formattedValue = formatter.format(getValue(origin, destination) / 60.0);
+					writer.write(q + originId + q + c + q + destinationId + q + c + formattedValue);
 					writer.newLine();
 				}
 			}
 			
 			writer.close();
 		} catch (Exception e) {
-			System.err.println(e.getMessage());
+			e.printStackTrace();
 		}
 	}
 }

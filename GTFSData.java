@@ -334,7 +334,7 @@ public class GTFSData {
         }
 	    long time = System.currentTimeMillis() - startTime;
 	    int nAdded = routes.values().size();
-	    System.out.println("  Loaded " + nAdded + " regions in " + time + " msec ("+ (double)time/(double)nAdded + " msec per route)");
+	    System.out.println("  Loaded " + nAdded + " routes in " + time + " msec ("+ (double)time/(double)nAdded + " msec per route)");
 	}
 	
 	private void loadTrips(ZipFile zipFile) {

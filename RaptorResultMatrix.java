@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class RaptorResultMatrix {
 	private Map<String, Map<String, RaptorResult>> matrix;
@@ -18,27 +19,31 @@ public class RaptorResultMatrix {
 	
 	public RaptorResult getResult(String origin, String destination) {
 		if (!matrix.containsKey(origin)) {
-			matrix.put(origin, new HashMap<String, RaptorResult>());
+			return RaptorResult.EMPTY_RESULT();
 		}
 		
 		Map<String, RaptorResult> row = matrix.get(origin);
 		
 		if (!row.containsKey(destination)) {
-			row.put(destination, new RaptorResult());
+			return RaptorResult.EMPTY_RESULT();
 		}
 		
 		return row.get(destination);
 	}
 	
 	public void updateResult(String origin, String destination, int arrivalTime, int activeTime) {
-		if (!matrix.containsKey(origin)) {
-			matrix.put(origin, new HashMap<String, RaptorResult>());
+		synchronized (matrix) {
+			if (!matrix.containsKey(origin)) {
+				matrix.put(origin, new HashMap<String, RaptorResult>());
+			}
 		}
 		
 		Map<String, RaptorResult> row = matrix.get(origin);
 		
-		if (!row.containsKey(destination)) {
-			row.put(destination, new RaptorResult());
+		synchronized (row) {
+			if (!row.containsKey(destination)) {
+				row.put(destination, new RaptorResult());
+			}
 		}
 		
 		RaptorResult result = row.get(destination);
@@ -46,7 +51,7 @@ public class RaptorResultMatrix {
 		result.activeTime = activeTime;
 	}
 	
-	public void writeResultsToCSVFile(String fileName){
+	public void writeResultsToCSVFile(String fileName, GTFSData gtfsData){
 		String c = ",";
 		System.out.println("Writing results...");
 		BufferedWriter writer;

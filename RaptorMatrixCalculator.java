@@ -25,8 +25,8 @@ public class RaptorMatrixCalculator {
         String outputFileName = args[8];
         
         RaptorMatrixCalculator r = new RaptorMatrixCalculator(gtfsFileName, pointsFileName, regionsFileName, serviceId);
-        //r.calculateStopMatrix(startTime, endTime, maxTrips, maxTransferTime);
-        r.calculateRegionMatrix();
+        r.calculateStopMatrix(startTime, endTime, maxTrips, maxTransferTime);
+        r.calculateRegionMatrixToFile(outputFileName);
 	}
 	
 	public RaptorResultMatrix getStopMatrix() {
@@ -37,58 +37,110 @@ public class RaptorMatrixCalculator {
 	    return regionMatrix;
 	}
 	
+	public void writeStopMatrixToFile(String fileName) {
+		stopMatrix.writeResultsToCSVFile(fileName, gtfsData);
+	}
+	
+	public void writeRegionMatrixToFile(String fileName) {
+		regionMatrix.writeResultsToCSVFile(fileName, gtfsData);
+	}
+	
+	public void calculateRegionMatrixToFile(String fileName) {
+		System.out.println("Calculating region travel time matrix...");
+		BufferedWriter writer = null;
+		long startCalc;
+		long totalCalcTime;
+		ExecutorService es = Executors.newFixedThreadPool(1);
+		
+		try {
+			writer = new BufferedWriter(new FileWriter(fileName));
+			//System.out.println("Writing headers...");
+			writer.write("\"otaz\",\"dtaz\",\"mins\"");
+			writer.newLine();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		List<ODRegion> regions = new ArrayList<ODRegion>(gtfsData.getRegions());
+		Collections.sort(regions);
+		startCalc = System.currentTimeMillis();
+		for (ODRegion region : regions) {
+			Future f = es.submit(new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix, writer));		
+		}
+		es.shutdown();
+	    
+	    while (!es.isTerminated()) {
+	        try {
+	            Thread.sleep(10000);
+	        } catch (Exception e) {
+	            e.printStackTrace();;
+	        }	            
+	    }
+	    totalCalcTime = System.currentTimeMillis() - startCalc;
+        System.out.println("Total calculation time for " + regions.size() + " regions: " + (totalCalcTime / 1000.0) + " seconds");
+			
+		try {
+			writer.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void calculateRegionMatrix() {
-	    //Collection<ODRegion> regions = gtfsData.getRegions();
-	    Collection<ODRegion> regions = new HashSet<ODRegion>();
-	    regions.add(gtfsData.getRegionForId("100"));
+		long startCalc;
+		long totalCalcTime;
+		BufferedWriter writer = null;
+	    Collection<ODRegion> regions = gtfsData.getRegions();
+	    //Collection<ODRegion> regions = new HashSet<ODRegion>();
+	    //regions.add(gtfsData.getRegionForId("100"));
 	    ExecutorService es = Executors.newFixedThreadPool(1);
 	    
-	    RegionRowCalculator rrc = new RegionRowCalculator(gtfsData, gtfsData.getRegionForId("100"), stopMatrix, regionMatrix);
-	    rrc.run();
+	    for (ODRegion region : regions) {
+			RegionRowCalculator rrc = new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix, writer);
+			rrc.run();
+		}
 	    
+// 	    startCalc = System.currentTimeMillis();
 // 	    for (ODRegion region : regions) {
 // 	        Future f = es.submit(new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix));
-// 	        System.out.println("Submitted task");
 // 	    }
-// 	    System.out.println("Calling shutdown");
 // 	    es.shutdown();
 // 	    
 // 	    while (!es.isTerminated()) {
-// 	        System.out.println("Waiting for shutdown");
 // 	        try {
-// 	            Thread.sleep(1000);
+// 	            Thread.sleep(10000);
 // 	        } catch (Exception e) {
-// 	            System.err.println(e.getMessage());
+// 	            e.printStackTrace();;
 // 	        }	            
 // 	    }
+// 	    totalCalcTime = System.currentTimeMillis() - startCalc;
+//         System.out.println("Total calculation time for " + regions.size() + " regions: " + (totalCalcTime / 1000.0) + " seconds");
 	}
 	
 	public void calculateStopMatrix(int startTime, int endTime, int maxTrips, int maxTransferTime) {
+		System.out.println("Calculating stop travel time matrix...");
 		int numStops = 100;
 		int completedStops = 0;
 		long totalCalcTime = 0;
 		long startCalc;
 		Random rng = new Random();
-		ExecutorService es = Executors.newFixedThreadPool(3);
+		ExecutorService es = Executors.newFixedThreadPool(4);
 		
 		startCalc = System.currentTimeMillis();
-		while (completedStops < numStops) {
-		    String randomStopId = ((Integer) rng.nextInt(60000)).toString();
-		    if (gtfsData.getStopIds().contains(randomStopId)) {
-		        Future f = es.submit(new RaptorRowCalculator(gtfsData, gtfsData.getStopForId(randomStopId), startTime, endTime, maxTrips, maxTransferTime, stopMatrix));
-		        completedStops++;
-		    }
+		for (GTFSStop stop : gtfsData.getStops()) {
+		    //String randomStopId = ((Integer) rng.nextInt(60000)).toString();
+		    Future f = es.submit(new RaptorRowCalculator(gtfsData, stop, startTime, endTime, maxTrips, maxTransferTime, stopMatrix));
 		}
 		es.shutdown();
 		
 		while (!es.isTerminated()) {
 		    try {
-		        Thread.sleep(1000);
+		        Thread.sleep(10000);
 		    } catch (Exception e) {
-		        System.err.println(e.getMessage());
+		        e.printStackTrace();
 		    }
 		}
         totalCalcTime = System.currentTimeMillis() - startCalc;
-        System.out.println("Total calculation time for " + numStops + " stops: " + (totalCalcTime / 1000.0) + " seconds");
+        System.out.println("Total calculation time for " + gtfsData.getStops().size() + " stops: " + (totalCalcTime / 1000.0) + " seconds");
 	}
 }

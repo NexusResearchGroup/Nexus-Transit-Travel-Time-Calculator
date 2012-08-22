@@ -81,7 +81,7 @@ public class RaptorRowCalculator implements Runnable {
 	}
 	
 	private void calculateResults() {
-		System.out.println("Stop " + originStop.getId());
+		//System.out.println("Stop " + originStop.getId());
 		HashSet<GTFSStop> nextRoundMarkedStops = new HashSet<GTFSStop>();
 		nextRoundMarkedStops.add(originStop);
 		HashSet<GTFSStop> thisRoundMarkedStops;
