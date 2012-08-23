@@ -48,26 +48,30 @@ public class RegionRowCalculator implements Runnable {
         //System.out.println("I see " + dRegions.size() + " destination regions");
         for (ODRegion dRegion : dRegions) {
             //System.out.println("  Calculating time to region " + dRegion.getId());
-            dPoints = dRegion.getPoints();
             totalTime = 0;
             numPairs = 0;
             
-            for (ODPoint oPoint : oPoints) {
-                //System.out.println("    Using origin point " + oPoint.getId());
-                for (ODPoint dPoint : dPoints) {
-                    //System.out.println("      and destination point " + dPoint.getId());
-                    numPairs++;
-                    totalTime += minimumTimeBetweenPoints(oPoint, dPoint);
-                }
-            }
-            
-            if (numPairs == 0) {
-                System.out.println("    No point pairs connect to region " + dRegion.getId());
-                averageTime = Integer.MAX_VALUE;
+            if (dRegion == originRegion) {
+            	averageTime = 0;
             } else {
-                averageTime = (int)Math.round(totalTime / numPairs);
-                //System.out.println( "    Average time is " + averageTime + " seconds");
-            }
+            	dPoints = dRegion.getPoints();
+				for (ODPoint oPoint : oPoints) {
+					//System.out.println("    Using origin point " + oPoint.getId());
+					for (ODPoint dPoint : dPoints) {
+						//System.out.println("      and destination point " + dPoint.getId());
+						numPairs++;
+						totalTime += minimumTimeBetweenPoints(oPoint, dPoint);
+					}
+				}
+				
+				if (numPairs == 0) {
+					System.out.println("    No point pairs connect to region " + dRegion.getId());
+					averageTime = Integer.MAX_VALUE;
+				} else {
+					averageTime = (int)Math.round(totalTime / numPairs);
+					//System.out.println( "    Average time is " + averageTime + " seconds");
+				}
+			}
 			
 			formattedValue = formatter.format(averageTime / 60.0);
 			synchronized (writer) {
@@ -164,6 +168,9 @@ public class RegionRowCalculator implements Runnable {
     }
     
     private int walkingTimeBetweenRegions(ODRegion oRegion, ODRegion dRegion) {
+    	if (oRegion == dRegion) {
+    		return 0;
+    	}
         double distance = Haversine.distanceBetween(oRegion.getLocation(), dRegion.getLocation()) * GTFSData.circuityAdjustment;
         return (int) Math.round(distance / GTFSData.walkSpeed * 3600);
     }
