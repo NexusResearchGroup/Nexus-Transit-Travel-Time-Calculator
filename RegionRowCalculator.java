@@ -13,8 +13,9 @@ public class RegionRowCalculator implements Runnable {
     private Collection<ODRegion> dRegions;
     private Collection<ODPoint> oPoints;
     private BufferedWriter writer;
+    JobCounter jobCounter;
 
-    public RegionRowCalculator(GTFSData gtfsData, ODRegion originRegion, RaptorResultMatrix stopMatrix, RegionResultMatrix resultMatrix, BufferedWriter writer) {
+    public RegionRowCalculator(GTFSData gtfsData, ODRegion originRegion, RaptorResultMatrix stopMatrix, RegionResultMatrix resultMatrix, BufferedWriter writer, JobCounter jobCounter) {
         this.gtfsData = gtfsData;
         this.originRegion = originRegion;
         this.oPoints = originRegion.getPoints();
@@ -24,13 +25,16 @@ public class RegionRowCalculator implements Runnable {
         this.writer = writer;
         this.formatter = new DecimalFormat();
         formatter.setMaximumFractionDigits(2);
+        formatter.setMinimumFractionDigits(2);
         formatter.setGroupingUsed(false);
         this.dRegions = gtfsData.getRegions();
+        this.jobCounter = jobCounter;
     }
     
     public void run() {
         calculateResultsToFile();
         //resultMatrix.putRow(originRegion, row);
+        jobCounter.increment();
     }
     
     public void calculateResultsToFile() {
@@ -129,7 +133,7 @@ public class RegionRowCalculator implements Runnable {
     }
     
     private int minimumTimeBetweenPoints(ODPoint oPoint, ODPoint dPoint) {
-    	int minimumTime = Haversine.secondsBetween(oPoint.getLocation(), dPoint.getLocation(), GTFSData.walkSpeed) * GTFSData.circuityAdjustment;
+    	int minimumTime = (int) Math.round(Haversine.secondsBetween(oPoint.getLocation(), dPoint.getLocation(), GTFSData.walkSpeed) * GTFSData.circuityAdjustment);
         int accessTime;
         int egressTime;
         int totalTime;

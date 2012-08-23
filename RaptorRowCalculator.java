@@ -12,8 +12,9 @@ public class RaptorRowCalculator implements Runnable {
     private final int maxTransferTime;
     private final RaptorResultMatrix resultMatrix;
     private Map<GTFSStop, RaptorResult> row;
+    private JobCounter jobCounter;
     
-    public RaptorRowCalculator(GTFSData gtfsData, GTFSStop originStop, int startTime, int endTime, int maxTrips, int maxTransferTime, RaptorResultMatrix resultMatrix) {
+    public RaptorRowCalculator(GTFSData gtfsData, GTFSStop originStop, int startTime, int endTime, int maxTrips, int maxTransferTime, RaptorResultMatrix resultMatrix, JobCounter jobCounter) {
         this.gtfsData = gtfsData;
         this.originStop = originStop;
         this.originStopId = originStop.getId();
@@ -23,11 +24,13 @@ public class RaptorRowCalculator implements Runnable {
         this.maxTransferTime = maxTransferTime;
         this.resultMatrix = resultMatrix;
         this.row = new HashMap<GTFSStop, RaptorResult>();
+        this.jobCounter = jobCounter;
     }
     
     public void run() {
         calculateResults();
         resultMatrix.putRow(originStop, row);
+        jobCounter.increment();
     }
     
     private void processTripFromStop(GTFSTrip trip, GTFSStop currentStop, Set<GTFSStop> markedStops) {
