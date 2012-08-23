@@ -86,6 +86,7 @@ public class RaptorMatrixCalculator {
 		    }
 	    }
 	    totalCalcTime = System.currentTimeMillis() - startCalc;
+	    System.out.println();
         System.out.println("  Total calculation time for " + regions.size() + " regions: " + (totalCalcTime / 1000.0) + " seconds");
 			
 		try {
