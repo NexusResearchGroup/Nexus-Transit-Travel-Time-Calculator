@@ -159,7 +159,7 @@ public class GTFSData {
 	
 	private void addStop(String stopId, GeoPoint location) throws Exception {
 	    if (stops.containsKey(stopId)) {
-	        throw new Exception("Duplicate stop ID: " + stopId);
+	        throw new Exception("  Duplicate stop ID: " + stopId);
 	    } else {
 	        GTFSStop stop = new GTFSStop(stopId, location);
 	        stops.put(stopId, stop);
@@ -169,7 +169,7 @@ public class GTFSData {
 	
 	private void addRoute(String routeId, String routeName) throws Exception {
 	    if (routes.containsKey(routeId)) {
-	        throw new Exception("Duplicate route ID: " + routeId);
+	        throw new Exception("  Duplicate route ID: " + routeId);
 	    } else {
 	        GTFSRoute route = new GTFSRoute(routeId, routeName);
 	        routes.put(routeId, route);
@@ -178,7 +178,7 @@ public class GTFSData {
 	
 	private void addTrip(String tripId, String routeId) throws Exception {
 	    if (trips.containsKey(tripId)) {
-	        throw new Exception("Duplicate trip ID: " + tripId);
+	        throw new Exception("  Duplicate trip ID: " + tripId);
 	    } else {
 	        //System.out.println("Creating new trip " + tripId + " for route " + routeId);
 	        GTFSRoute route = routes.get(routeId);
@@ -217,7 +217,7 @@ public class GTFSData {
 	    ODPoint point = null;
 	    
 	    if (points.containsKey(pointId)) {
-	        throw new Exception("Duplicate point ID: " + pointId);
+	        throw new Exception("  Duplicate point ID: " + pointId);
 	    } else {
 	        point = new ODPoint(pointId, location);
 	        points.put(pointId, point);
@@ -245,7 +245,7 @@ public class GTFSData {
 	
 	private void addODRegion(String regionId, GeoPoint location) throws Exception {
 	    if (regions.containsKey(regionId)) {
-	        throw new Exception("Duplicate region ID: " + regionId);
+	        throw new Exception("  Duplicate region ID: " + regionId);
 	    } else {
 	        ODRegion region = new ODRegion(regionId, location);
 	        regions.put(regionId, region);
