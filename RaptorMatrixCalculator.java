@@ -50,7 +50,10 @@ public class RaptorMatrixCalculator {
 		BufferedWriter writer = null;
 		long startCalc;
 		long totalCalcTime;
-		ExecutorService es = Executors.newFixedThreadPool(1);
+		int currentPercent = 0;
+		int lastPercent = 0;
+		ExecutorService es = Executors.newFixedThreadPool(4);
+		JobCounter jobCounter = new JobCounter(gtfsData.getRegions().size());
 		
 		try {
 			writer = new BufferedWriter(new FileWriter(fileName));
@@ -65,7 +68,7 @@ public class RaptorMatrixCalculator {
 		Collections.sort(regions);
 		startCalc = System.currentTimeMillis();
 		for (ODRegion region : regions) {
-			Future f = es.submit(new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix, writer));		
+			Future f = es.submit(new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix, writer, jobCounter));		
 		}
 		es.shutdown();
 	    
@@ -74,7 +77,13 @@ public class RaptorMatrixCalculator {
 	            Thread.sleep(10000);
 	        } catch (Exception e) {
 	            e.printStackTrace();;
-	        }	            
+	        }
+	        currentPercent = jobCounter.getPercentOfMax();
+		    if (currentPercent >= (lastPercent + 10)) {
+		    	lastPercent = currentPercent;
+		    	System.out.print("  " + currentPercent + "%");
+		    	System.out.flush();
+		    }
 	    }
 	    totalCalcTime = System.currentTimeMillis() - startCalc;
         System.out.println("  Total calculation time for " + regions.size() + " regions: " + (totalCalcTime / 1000.0) + " seconds");
@@ -91,12 +100,13 @@ public class RaptorMatrixCalculator {
 		long totalCalcTime;
 		BufferedWriter writer = null;
 	    Collection<ODRegion> regions = gtfsData.getRegions();
+	    JobCounter jobCounter = new JobCounter(regions.size());
 	    //Collection<ODRegion> regions = new HashSet<ODRegion>();
 	    //regions.add(gtfsData.getRegionForId("100"));
 	    ExecutorService es = Executors.newFixedThreadPool(1);
 	    
 	    for (ODRegion region : regions) {
-			RegionRowCalculator rrc = new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix, writer);
+			RegionRowCalculator rrc = new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix, writer, jobCounter);
 			rrc.run();
 		}
 	    
@@ -125,11 +135,15 @@ public class RaptorMatrixCalculator {
 		long startCalc;
 		Random rng = new Random();
 		ExecutorService es = Executors.newFixedThreadPool(4);
+		JobCounter jobCounter = new JobCounter(gtfsData.getStops().size());
+		int currentPercent = 0;
+		int lastPercent = 0;
+		
 		
 		startCalc = System.currentTimeMillis();
 		for (GTFSStop stop : gtfsData.getStops()) {
 		    //String randomStopId = ((Integer) rng.nextInt(60000)).toString();
-		    Future f = es.submit(new RaptorRowCalculator(gtfsData, stop, startTime, endTime, maxTrips, maxTransferTime, stopMatrix));
+		    Future f = es.submit(new RaptorRowCalculator(gtfsData, stop, startTime, endTime, maxTrips, maxTransferTime, stopMatrix, jobCounter));
 		}
 		es.shutdown();
 		
@@ -139,8 +153,16 @@ public class RaptorMatrixCalculator {
 		    } catch (Exception e) {
 		        e.printStackTrace();
 		    }
+		    
+		    currentPercent = jobCounter.getPercentOfMax();
+		    if (currentPercent >= (lastPercent + 10)) {
+		    	lastPercent = currentPercent;
+		    	System.out.print("  " + currentPercent + "%");
+		    	System.out.flush();
+		    }
 		}
         totalCalcTime = System.currentTimeMillis() - startCalc;
+        System.out.println();
         System.out.println("  Total calculation time for " + gtfsData.getStops().size() + " stops: " + (totalCalcTime / 1000.0) + " seconds");
 	}
 }
