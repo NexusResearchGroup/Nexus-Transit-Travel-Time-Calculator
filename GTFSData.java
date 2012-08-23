@@ -276,7 +276,7 @@ public class GTFSData {
 	            }
 	        }
 	    }
-	    System.out.println(numAdded + " out of " + stops.size() + " stops were unconnected");
+	    System.out.println("  " + numAdded + " out of " + stops.size() + " stops were unconnected");
 	}
 
 	private void loadStops(ZipFile zipFile) {
