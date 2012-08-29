@@ -44,8 +44,8 @@ public class RaptorMatrixCalculator {
 	@Option(name="-w",usage="Maximum allowable time to wait for transfers, in seconds")
 	private int maxTransferTime = 900;
 	
-	@Option(name="-mp",usage="Maximum number of threads. Default is 1; increasing this will significantly speed up processing on multi-core machines")
-	private int maxJobs = 1;
+	@Option(name="-mp",usage="Maximum number of threads. Default is 1; increasing this will significantly speed up processing on multi-core computers")
+	private int maxThreads = 1;
 
 	public RaptorMatrixCalculator(String gtfsFileName, String pointsFileName, String regionsFileName, String serviceId) {
 		this.gtfsData = new GTFSData(gtfsFileName, pointsFileName, regionsFileName, serviceId);
@@ -84,7 +84,7 @@ public class RaptorMatrixCalculator {
 	        System.err.println("No options specified.");
 	        parser.printUsage(System.err);
 	        System.err.println();
-	        System.err.println("Example: 
+	        System.err.println("Example: java -jar NexusTTTCalc -g gtfs_file.zip -p points.csv -r regions.csv -id SEP09-Multi-Weekday-01 -s 25200 -e 32400 -w 900 -b 2 -o results.csv");
 	        return;
 	    }
 	    
@@ -94,13 +94,14 @@ public class RaptorMatrixCalculator {
 	        System.err.println(e.getMessage());
 	        parser.printUsage(System.err);
 	        System.err.println();
-	        
+	        System.err.println();
+	        System.err.println("Example: java -jar NexusTTTCalc -g gtfs_file.zip -p points.csv -r regions.csv -id SEP09-Multi-Weekday-01 -s 25200 -e 32400 -w 900 -b 2 -o results.csv");
 	        return;
 	    }
 	    	    
 	    gtfsData = new GTFSData(gtfsFileName, pointsFileName, regionsFileName, serviceId);
-        calculateStopMatrix(startTime, endTime, maxTrips, maxTransferTime);
-	    calculateRegionMatrixToFile(outputFileName);
+        calculateStopMatrix(startTime, endTime, maxTrips, maxTransferTime, maxThreads);
+	    calculateRegionMatrixToFile(outputFileName, 1);
 	    
 	}
 	
@@ -120,14 +121,14 @@ public class RaptorMatrixCalculator {
 		regionMatrix.writeResultsToCSVFile(fileName, gtfsData);
 	}
 	
-	public void calculateRegionMatrixToFile(String fileName) {
+	public void calculateRegionMatrixToFile(String fileName, int maxThreads) {
 		System.out.println("Calculating region travel time matrix...");
 		BufferedWriter writer = null;
 		long startCalc;
 		long totalCalcTime;
 		int currentPercent = 0;
 		int lastPercent = 0;
-		ExecutorService es = Executors.newFixedThreadPool(4);
+		ExecutorService es = Executors.newFixedThreadPool(maxThreads);
 		JobCounter jobCounter = new JobCounter(gtfsData.getRegions().size());
 		
 		try {
@@ -177,40 +178,22 @@ public class RaptorMatrixCalculator {
 		BufferedWriter writer = null;
 	    Collection<ODRegion> regions = gtfsData.getRegions();
 	    JobCounter jobCounter = new JobCounter(regions.size());
-	    //Collection<ODRegion> regions = new HashSet<ODRegion>();
-	    //regions.add(gtfsData.getRegionForId("100"));
 	    ExecutorService es = Executors.newFixedThreadPool(1);
 	    
 	    for (ODRegion region : regions) {
 			RegionRowCalculator rrc = new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix, writer, jobCounter);
 			rrc.run();
 		}
-	    
-// 	    startCalc = System.currentTimeMillis();
-// 	    for (ODRegion region : regions) {
-// 	        Future f = es.submit(new RegionRowCalculator(gtfsData, region, stopMatrix, regionMatrix));
-// 	    }
-// 	    es.shutdown();
-// 	    
-// 	    while (!es.isTerminated()) {
-// 	        try {
-// 	            Thread.sleep(10000);
-// 	        } catch (Exception e) {
-// 	            e.printStackTrace();;
-// 	        }	            
-// 	    }
-// 	    totalCalcTime = System.currentTimeMillis() - startCalc;
-//         System.out.println("Total calculation time for " + regions.size() + " regions: " + (totalCalcTime / 1000.0) + " seconds");
 	}
 	
-	public void calculateStopMatrix(int startTime, int endTime, int maxTrips, int maxTransferTime) {
+	public void calculateStopMatrix(int startTime, int endTime, int maxTrips, int maxTransferTime, int maxThreads) {
 		System.out.println("Calculating stop travel time matrix...");
 		int numStops = 100;
 		int completedStops = 0;
 		long totalCalcTime = 0;
 		long startCalc;
 		Random rng = new Random();
-		ExecutorService es = Executors.newFixedThreadPool(4);
+		ExecutorService es = Executors.newFixedThreadPool(maxThreads);
 		JobCounter jobCounter = new JobCounter(gtfsData.getStops().size());
 		int currentPercent = 0;
 		int lastPercent = 0;
@@ -218,7 +201,6 @@ public class RaptorMatrixCalculator {
 		
 		startCalc = System.currentTimeMillis();
 		for (GTFSStop stop : gtfsData.getStops()) {
-		    //String randomStopId = ((Integer) rng.nextInt(60000)).toString();
 		    Future f = es.submit(new RaptorRowCalculator(gtfsData, stop, startTime, endTime, maxTrips, maxTransferTime, stopMatrix, jobCounter));
 		}
 		es.shutdown();
