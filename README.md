@@ -1,69 +1,100 @@
 NEXUS Transit Travel Time Calculator
 ====================================
 
-This program takes a database of transit schedules and returns a TAZ-to-TAZ travel time matrix. It was originally developed for use with the Metro Transit schedule format circa 2008 and as part of the Access to Destinations project for MnDOT. The latest version of this program (1.3) is compatible with the General Transit Feed Specification (GTFS) format and can be used with any GTFS schedule, as long as a few other inputs are provided.
+This program takes a database of transit schedules and returns a TAZ-to-TAZ travel time matrix. It was initially developed in 2011 as part of the Access to Destinations project for the Minnesota Department of Transportation. It is compatible with the General Transit Feed Specification (GTFS) format and can be used with any GTFS schedule, as long as a few other inputs are provided.
+
+The NEXUS Transit Travel Time Calculator implements a variation of the [RAPTOR algorithm][raptor] for efficient route-based transit routing.
 
 Inputs
 ------
-Several input files are needed. The assumed format is comma delimited with a one line header. File names can be set within the program.
+Three input files are needed. The assumed format is comma delimited with a one line header. File names can be set within the program.
 
-*	*stopline*
+*	GTFS file
 
-	[stop number, line number]
-	
-	This is the driver for the program. One way to debug is to include a very small stopline file (~5 lines). For any schedule set, the user must ensure that all unique stop-line pairs are present in this file. (i.e. if stop 12345 is served by bus routes 2 and 3, the lines "12345,2" and "12345,3" should appear in this file)
-	
-	You can also generate this using the StopLineListCreator class, which will create the stopline data directly from a GTFS archive. To use it:
-	```
-	java StopLineListCreator gtfs.zip > stopline.csv
-	```
-	
-	Depending on the size of the GTFS archive, you may need to increase the heap space from the default, e.g. with:
-	```
-	java -Xmx1G StopLineListCreator gtfs.zip > stopline.csv
-	```
+	Any standard GTFS file.
 
-*	*stopconv*
+*	Points file
 
-	[stop number, TAZ, access/egress time (in minutes), block ID]
-	This file relates the stop locations to the nearest block centroid. The user would need to create this file to use this program with another city's data. Each block centroid is joined to the closest two stops (stops might be duplicated in this procedure, this is fine). Then, any remaining unjoined stops are joined to the closest block. This process guarantees that every block in the city will be considered, although its travel times may be too long to actually matter. Please note that the file provided in the example, stopconv_block2.csv, uses year 2000 TAZ and block definitions.
+    A CSV file identifying geographic points from and to which travel times should be calculated. An example is included. It must have the following fields, in this order:
+    
+    *   `GEOID`: A string uniquely identifying each point. In the example, these are US Census block IDs.
+    
+    *   `REGION`: A string identifying which summary region the point belongs to. This must match an entry in the regions file (below). In the example, these are Transportation Analysis Zones (TAZs) as defined by the Metropolitan Council.
+    
+    *   `LAT`: A floating-point number identifying the latitude of the point, in the WGS84 coordinate system.
+    
+    *   `LON`: A floating-point number identifying the longitude of the point, in the WGS84 coordinate system.
 
-*	*schedule*
+*   Region file
 
-	stop_times.txt (GTFS standard file)
-	[trip_id,arrival_time,departure_time,stop_id,stop_sequence,pickup_type,drop_off_type] 
-	
-	trips.txt (GTFS standard file)
-	[route_id,service_id,trip_id,trip_headsign,block_id,shape_id]
-	
-	These files can be taken directly from a GTFS package. No additional processing is necessary.
-	
-*	*transfer*
+    A CSV file identifying summary regions at which the results of the travel time calculation should be reported. And example is included. Travel times are calculated between each pair of points identified in the points file, and then averaged to regions. The regions file must have the following fields, in this order:
+    
+    *   `ID`: A string uniquely identifying each regions. In the example, these are Transportation Analysis Zones (TAZs) as defined by the Metropolitan Council.
+    
+    *   `LAT`: A floating-point number identifying the latitude of the region’s centroid, in the WGS84 coordinate system.
+    
+    *   `LON`: A floating-point number identifying the longitude of the region’s centroid, in the WGS84 coordinate system.
 
-	[line1, stop1, line2, stop2]
-	This file contains all available transfers. In the Access to Destinations project, transfer files for the different scenarios were produced in ArcMap by setting a search tolerance of 400m (~1/4 mile).
-	
-*	*tazfile*
+Usage
+-----
 
-	[TAZ1, TAZ2, walk time (in minutes)]
-	This file sets the base travel times. In the Access to Destinations project, this file contained interzonal walk times calculated using 1.2 times the centroid-to-centroid distance and a walking speed of 5 km/h. If the user only wants to see travel times on transit, this file could be filled in with a large number (such as 1440, the number of minutes in a day). This file is a travel time matrix and must include all possible TAZ to TAZ combinations. It also must be sorted, first by TAZ1, then by TAZ2.
-	
-Running the Program
--------------------
+The program is controlled by several options:
 
-First, place all input files in the same directory as Master1.java
+*   `-g [GTFS file]`
+   
+    Read schedule information from the specified GTFS file
 
-Then, open Master1.java and change the file names to match your input files (search for "//SET FILE NAMES HERE"). At the bottom of this section are four additional variables. In every GTFS file, there are several different service IDs (weekday, weekend, special event, etc.). You probably only want one of these, so indicate which one in "serviceID". TAZnumber holds the number of TAZs. (For the Twin Cities in the year 2000 definition, there are 1201.) FirstScheduleTime and LastScheduleTime define the time period in seconds after midnight. For example, 21600 to 32400 represents 6-9 AM.
+*   `-id [service id]`
 
-Now, check that the array sizes are large enough for your input files. (search for "//INCREASE AS NECESSARY"). The first number in the array definition must be larger than the number of lines in your input file.
+    The service ID to process. This must match a service ID in the calendar.txt file of the specified GTFS file. Only one service ID can be processed at a time.
 
-Now, save Master1.java, open a command line window, navigate to your directory and type: 
+*   `-p [points file]`
+    
+    Read point information from the specified file
 
-* [your Java folder location]\Java\bin\javac Master1.java
-* [your Java folder location]\Java\bin\java Master1
+*   `-r [regions file]`
+    
+    Read region information from the specified file
 
-The program will update you with each additional percentage point complete. It also tells you the elapsed time (in seconds) to complete the last percentage point, as well as the total run time. The results are saved to a file, results.csv, in the same directory as the program.
+*   `-o [output file]`
+    
+    Write the output matrix to the specified file
 
-Example
--------
-This documentation was originally intended to be packaged with a complete example. This example will calculate travel times for the morning rush period (6-9am) using a GTFS schedule put out by Metro Transit and valid for late 2009/early 2010. The TAZ and block definitions are from year 2000.
+*   `-s #`
+
+    Start time of day, in seconds past midnight (e.g. 7AM = 25200). Trips which depart before this time will not be included in travel time calculations.
+    
+*   `-e #`
+
+    End time of day, in seconds past midnight (e.g. 9AM = 32400). Trips which depart after this time will not be included in travel time calculations.
+
+*   `-b #` (optional)
+
+    The maximum number of boardings. 0 will allow walking trips only; 1 will allow a single boarding and no transfers; 2 will allow a single transfer; etc. The default is 2.
+
+*   `-w #` (optional)
+
+    The maximum allowable wait time for transfers, in seconds. Potential transfer trips which depart later than the current time plus this value will be ignored. The default is 900 seconds (15 minutes).
+    
+*   `-mp #` (optional)
+
+    The maximum number of concurrent threads. Transit routing is [embarrassingly parallel][parallel] and computation times can be significantly decreased by allowing multithreading. The default is 1 (single-threaded operation).
+
+Development
+-----------
+The NEXUS Transit Travel Time Calculator uses Maven for build management. To build from source, it should be sufficient to run
+
+```
+mvn package
+```
+
+in the project root directory.
+
+License and Copyright
+---------------------
+The NEXUS Transit Travel Time Calculator is released under the GNU General Public License version 3.0. See the LICENSE and http://www.gnu.org/licenses/gpl.html for more information.
+
+Copyright 2011, 2012 University of Minnesota
+
+[raptor]: http://research.microsoft.com/apps/pubs/default.aspx?id=156567
+[parallel]: http://en.wikipedia.org/wiki/Embarrassingly_parallel
