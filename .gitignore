@@ -3,3 +3,4 @@
 *.jar
 *.properties
 target/*
+target/maven-archiver/pom.properties
