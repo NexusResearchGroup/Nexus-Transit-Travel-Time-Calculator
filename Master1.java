@@ -7,6 +7,7 @@ public class Master1 {
     //Full version, last edited 11 May 2012
     //by Paul Anderson (ande9474@umn.edu or paul.anderson@epfl.ch)
     //Compatible with GTFS
+    //Archived 30 Aug 2012
 
     private static int i, j, k, stoplineLines, stopconvLines, tazLines, scheduleLines, transferLines, countOT, templine, tripLines, TAZnumber;
     private static double cstop_time, FirstScheduleTime, LastScheduleTime;
