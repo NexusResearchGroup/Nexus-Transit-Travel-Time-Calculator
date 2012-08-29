@@ -38,6 +38,14 @@ Three input files are needed. The assumed format is comma delimited with a one l
 Usage
 -----
 
+The program is built as an executable, command-line-driven JAR file. An example invocation is:
+
+```
+java -Xmx4G -jar NexusTTTCalc -g gtfs_file.zip -p points.csv -r regions.csv -id SEP09-Multi-Weekday-01 -s 25200 -e 32400 -w 900 -b 2 -o results.csv
+```
+
+This implementation is memory-intensive; the -Xmx option is used to significantly increase the amount of memory available in the JVM. The exact amount of memory required will depend on the contents of the GTFS, points, and regions files used.
+
 The program is controlled by several options:
 
 *   `-g [GTFS file]`
