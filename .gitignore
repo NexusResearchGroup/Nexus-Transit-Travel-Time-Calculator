@@ -1,15 +1,4 @@
 .DS_Store
 *.class
 *.jar
-
-google_transit.zip
-
-stops.txt
-
-MetroTransit-20091107-20091211.zip
-
-results_base.csv
-
-results.csv
-results_1.csv
-pom.properties
+*.properties
