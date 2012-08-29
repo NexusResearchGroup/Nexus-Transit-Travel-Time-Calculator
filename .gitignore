@@ -1,5 +1,6 @@
 .DS_Store
 *.class
+*.jar
 
 google_transit.zip
 
