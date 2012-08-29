@@ -24,7 +24,7 @@ Three input files are needed. The assumed format is comma delimited with a one l
     *   `LAT`: A floating-point number identifying the latitude of the point, in the WGS84 coordinate system.
     
     *   `LON`: A floating-point number identifying the longitude of the point, in the WGS84 coordinate system.
-
+    
 *   Region file
 
     A CSV file identifying summary regions at which the results of the travel time calculation should be reported. And example is included. Travel times are calculated between each pair of points identified in the points file, and then averaged to regions. The regions file must have the following fields, in this order:
@@ -100,7 +100,7 @@ in the project root directory.
 
 License and Copyright
 ---------------------
-The NEXUS Transit Travel Time Calculator is released under the GNU General Public License version 3.0. See the LICENSE and http://www.gnu.org/licenses/gpl.html for more information.
+The NEXUS Transit Travel Time Calculator is released under the GNU General Public License version 3.0. See the LICENSE file and http://www.gnu.org/licenses/gpl.html for more information.
 
 Copyright 2011, 2012 University of Minnesota
 
